@@ -1,0 +1,147 @@
+
+<!DOCTYPE html>
+<head>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://threejs.org/examples/js/libs/stats.min.js"></script>
+<script src="https://jyunming-chen.github.io/ar.js/three.js/build/ar.js"></script>
+</head>
+
+<body style='margin : 0px; overflow: hidden; font-family: Monospace;'>
+<script>
+
+// global variables
+var renderer, scene, camera;
+var stats;
+var arToolKitSource, arToolKitContext;
+var markerHiro;
+var clock = new THREE.Clock();
+var sphere, cylinder;
+var angle = 0;
+
+init();
+animate();
+
+function init() {
+
+	// init renderer
+	renderer	= new THREE.WebGLRenderer({
+		// antialias	: true,
+		alpha: true
+	});
+	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
+	// renderer.setPixelRatio( 1/2 );
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.domElement.style.position = 'absolute'
+	renderer.domElement.style.top = '0px'
+	renderer.domElement.style.left = '0px'
+	document.body.appendChild( renderer.domElement );
+
+	stats = new Stats();
+	document.body.appendChild( stats.dom );
+
+	// init scene and camera
+	scene	= new THREE.Scene();
+	
+	// Create a BASIC camera
+	camera = new THREE.Camera();
+	scene.add(camera);
+
+	////////////////////////////////////////////////////////////////////////////////
+	//          handle arToolkitSource
+	////////////////////////////////////////////////////////////////////////////////
+
+	arToolkitSource = new THREEx.ArToolkitSource({
+		// to read from the webcam 
+		sourceType : 'webcam',
+	})
+
+	arToolkitSource.init(function onReady(){
+		onResize()
+	})
+	
+	// handle resize
+	window.addEventListener('resize', function(){
+		onResize()
+	})
+	function onResize(){
+		arToolkitSource.onResize()	
+		arToolkitSource.copySizeTo(renderer.domElement)	
+		if( arToolkitContext.arController !== null ){
+			arToolkitSource.copySizeTo(arToolkitContext.arController.canvas)	
+		}	
+	}
+	////////////////////////////////////////////////////////////////////////////////
+	//          initialize arToolkitContext
+	////////////////////////////////////////////////////////////////////////////////
+	
+	arToolkitContext = new THREEx.ArToolkitContext({
+		cameraParametersUrl: 'https://jyunming-chen.github.io/ar.js/data/data/camera_para.dat',
+		detectionMode: 'mono',
+		maxDetectionRate: 30,
+		canvasWidth: 80*3,
+		canvasHeight: 60*3,
+	})
+	// initialize it
+	arToolkitContext.init(function onCompleted(){
+		// copy projection matrix to camera
+		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+	})
+
+	markerHiro = addMarkerHiro();
+	scene.add (markerHiro); 
+	
+}
+	
+function addMarkerHiro(){
+	let markerRoot = new THREE.Group()
+
+	var artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+		type : 'pattern',
+		patternUrl :  'https://jyunming-chen.github.io/ar.js/data/data/patt.hiro'
+	})
+
+	// add a torus knot & a transparent box	
+	var geometry	= new THREE.SphereGeometry( 0.1, 32, 32 );
+	var material	= new THREE.MeshNormalMaterial();
+	sphere = new THREE.Mesh( geometry, material );
+	sphere.position.y	= 0.5;
+	markerRoot.add (sphere);
+  
+  geometry	= new THREE.CylinderGeometry( 0.25, 0.25, 0.5, 32 );
+  cylinder = new THREE.Mesh( geometry, material );
+	markerRoot.add (cylinder);
+  
+  const gridHelper = new THREE.GridHelper( 1, 10 );
+	markerRoot.add( gridHelper );
+		
+	return markerRoot;
+}	
+
+
+var radius = 0.5;
+var speed = 10;
+
+function animate() {
+	requestAnimationFrame (animate);
+	stats.update();
+	
+	if( arToolkitSource.ready === false )	return
+	arToolkitContext.update( arToolkitSource.domElement )
+
+	//markerHiro.children[0].rotation.x += 0.1;
+  
+	var dt = clock.getDelta();
+  sphere.position.x = radius*Math.cos(angle);
+  sphere.position.z = radius*Math.sin(angle);
+  sphere.rotation.y = angle;
+  angle -= speed*0.10472*dt;
+  
+  cylinder.material = new THREE.MeshBasicMaterial();
+  cylinder.material.color = new THREE.Color( 0, Math.sin(angle)*0.25+0.75, 0 );
+  cylinder.position.y = 0.75+radius*Math.sin(angle);
+	
+	renderer.render (scene, camera);	
+}
+
+</script>
+</body>
