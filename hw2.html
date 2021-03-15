@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<head>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://threejs.org/examples/js/libs/stats.min.js"></script>
+<script src="https://jyunming-chen.github.io/ar.js/three.js/build/ar.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+</head>
+
+<body>
+<style>
+#things{
+  position: absolute;
+  top: 2%;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  z-index: 2;
+  color: #ffffff;
+}
+
+body {
+  overflow: hidden;
+}
+</style>
+<script>
+// global variables
+var renderer, scene, camera;
+var stats;
+var arToolKitSource, arToolKitContext;
+var markerHiro;
+var clock = new THREE.Clock();
+var group, circle = new Array(3), cone;
+var angle = 0, omega = 0;
+var turn = false;
+
+var markerSize = 8.3;
+var tableSize = 50;
+var radius = tableSize/markerSize;
+
+init();
+animate();
+
+function init() {
+
+	// init renderer
+	renderer = new THREE.WebGLRenderer({
+		alpha: true
+	});
+	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.domElement.style.position = 'absolute'
+	renderer.domElement.style.top = '0px'
+	renderer.domElement.style.left = '0px'
+	document.body.appendChild( renderer.domElement );
+
+	stats = new Stats();
+	document.body.appendChild( stats.dom );
+
+	// init scene and camera
+	scene	= new THREE.Scene();
+	
+	// Create a BASIC camera
+	camera = new THREE.Camera();
+	scene.add(camera);
+
+	////////////////////////////////////////////////////////////////////////////////
+	//          handle arToolkitSource
+	////////////////////////////////////////////////////////////////////////////////
+	
+	arToolkitSource = new THREEx.ArToolkitSource({
+		// to read from the webcam 
+		sourceType : 'webcam',
+	})
+
+	arToolkitSource.init(function onReady(){
+		onResize()
+	})
+	
+	// handle resize
+	window.addEventListener('resize', function(){
+		onResize()
+	})
+	function onResize(){
+		arToolkitSource.onResizeElement()	
+		arToolkitSource.copyElementSizeTo(renderer.domElement)	
+		if( arToolkitContext.arController !== null ){
+			arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas)	
+		}	
+	}
+	////////////////////////////////////////////////////////////////////////////////
+	//          initialize arToolkitContext
+	////////////////////////////////////////////////////////////////////////////////
+	
+	arToolkitContext = new THREEx.ArToolkitContext({
+		cameraParametersUrl: 'https://jyunming-chen.github.io/ar.js/data/data/camera_para.dat',
+		detectionMode: 'mono',
+		maxDetectionRate: 30,
+		canvasWidth: 80*3,
+		canvasHeight: 60*3,
+	})
+	// initialize it
+	arToolkitContext.init(function onCompleted(){
+		// copy projection matrix to camera
+		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+	})
+
+	markerHiro = addMarkerHiro();
+	scene.add (markerHiro); 
+  
+  document.getElementById("button1").onclick=function(){
+  	if(turn)	this.innerHTML = "Start";
+    else			this.innerHTML = "Stop";
+  	turn = !turn;
+  };
+}
+	
+function addMarkerHiro(){
+	let markerRoot = new THREE.Group()
+	var artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+		type : 'pattern',
+		patternUrl :  'https://jyunming-chen.github.io/ar.js/data/data/patt.hiro'
+	})
+
+	// add things
+  group = new THREE.Group();
+  markerRoot.add (group); 
+  
+  var geometry, material;
+  geometry = new THREE.CircleGeometry( radius, 32, 0, Math.PI*2/3);
+  material = new THREE.MeshBasicMaterial();
+  material.color = new THREE.Color("rgb(255,0,0)");
+  circle[0] = new THREE.Mesh( geometry, material );
+  circle[0].rotation.x = -Math.PI/2;
+  group.add (circle[0]);
+  
+  geometry = new THREE.CircleGeometry( radius, 32, Math.PI*2/3, Math.PI*2/3);
+  material = new THREE.MeshBasicMaterial();
+  material.color = new THREE.Color("rgb(0,255,0)");
+  circle[1] = new THREE.Mesh( geometry, material );
+  circle[1].rotation.x = -Math.PI/2;
+  group.add (circle[1]);
+  
+  geometry = new THREE.CircleGeometry( radius, 32, -Math.PI*2/3, Math.PI*2/3);
+  material = new THREE.MeshBasicMaterial();
+  material.color = new THREE.Color("rgb(0,0,255)");
+  circle[2] = new THREE.Mesh( geometry, material );
+  circle[2].rotation.x = -Math.PI/2;
+  group.add (circle[2]);
+  
+  geometry = new THREE.ConeGeometry( radius/10, radius/5, 32 );
+	material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+	cone = new THREE.Mesh( geometry, material );
+  cone.rotation.z = Math.PI/2;
+  cone.position.set(radius, 0, 0);
+  markerRoot.add (cone); 
+  
+  
+  // GridHelper
+  //const gridHelper = new THREE.GridHelper( 1, 10 );
+	//markerRoot.add( gridHelper );
+		
+	return markerRoot;
+}	
+
+var speed = 60;
+
+function animate() {
+	requestAnimationFrame (animate);
+	stats.update();
+	
+	if( arToolkitSource.ready === false )	return
+	arToolkitContext.update( arToolkitSource.domElement )
+  
+	var dt = 0.2;
+  
+  var maxOmega = 2;
+  if(turn)	omega = omega + 5*dt;  
+	else			omega = omega - .15*dt;    
+  omega = clamp (omega, 0, maxOmega);
+  angle += omega*dt;
+  group.rotation.y = angle;
+  
+  angle = angle%(Math.PI*2);
+  if(angle>Math.PI*2/3*2)
+    $('#text').css ('color', 'red'); 
+  else if(angle>Math.PI*2/3)
+    $('#text').css ('color', 'green');
+  else
+  	$('#text').css ('color', 'blue');
+	
+	renderer.render (scene, camera);	
+}
+
+function clamp (x, xLo, xHi) {
+	if (x < xLo) return xLo;
+  if (x > xHi) return xHi;
+  else return x;
+}
+</script>
+<div id="things">
+  桌子：50x50cm<br>
+  Marker：8.3x8.3cm<br><br>
+  <button id="button1">Start</button>
+  <p id="text" style ="color:red">color</p>
+</div>
+</body>
