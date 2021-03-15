@@ -108,8 +108,10 @@ function init() {
 	scene.add (markerHiro); 
   
   document.getElementById("button1").onclick=function(){
-  	if(turn)	this.innerHTML = "Start";
-    else			this.innerHTML = "Stop";
+  	if(turn)
+		this.innerHTML = "Start";
+	else
+		this.innerHTML = "Stop";
   	turn = !turn;
   };
 }
