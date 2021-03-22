@@ -44,12 +44,14 @@ body {
   overflow: hidden;
 }
 </style>
+	
 <div id="things">
-  桌子：37.2x47.3cm<br>
-  Marker：8.3x8.3cm<br><br>
-  <button id="button1">Start</button>
-  <p id="text" style ="color:red">color</p>
+  <span class="info">桌子：37.2x47.3cm</span><br><br>
+  <span class="info">Marker：8.3x8.3cm</span><br><br>
+  <button id="button1">Start</button><br><br>
+  <span id="text">color</span>
 </div>
+	
 <script>
 // global variables
 var renderer, scene, camera;
@@ -179,7 +181,7 @@ function addMarkerHiro(){
 	material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
 	cone = new THREE.Mesh( geometry, material );
   cone.rotation.x = Math.PI/2;
-  cone.position.set(0, 0, radius);
+  cone.position.set(0, 0, -radius);
   markerRoot.add (cone); 
   
   
@@ -209,9 +211,9 @@ function animate() {
   group.rotation.y = angle;
   
   angle = angle%(Math.PI*2);
-  if(angle>Math.PI*2/3*2+Math.PI/2)
+  if(angle>Math.PI*2/3*2-Math.PI/2)
     $('#text').css ('color', 'red'); 
-  else if(angle>Math.PI*2/3+Math.PI/2)
+  else if(angle>Math.PI*2/3-Math.PI/2)
     $('#text').css ('color', 'green');
   else
   	$('#text').css ('color', 'blue');
