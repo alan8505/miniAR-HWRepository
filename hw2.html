@@ -176,7 +176,6 @@ function addMarkerHiro(){
   circle[2] = new THREE.Mesh( geometry, material );
   circle[2].rotation.x = -Math.PI/2;
   group.add (circle[2]);
-  group.rotation.y = -Math.PI/2;
   
   geometry = new THREE.ConeGeometry( radius/10, radius/5, 32 );
 	material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
@@ -209,11 +208,11 @@ function animate() {
 	else			omega = omega - .15*dt;    
   omega = clamp (omega, 0, maxOmega);
   angle += omega*dt;
-  group.rotation.y = angle;
+  group.rotation.y = angle-Math.PI/2;
   
   angle = angle%(Math.PI*2);
   if(angle>Math.PI*2/3*2)
-    $('#text').css ('color', 'red'); 
+    $('#text').css ('color', 'red');
   else if(angle>Math.PI*2/3)
     $('#text').css ('color', 'green');
   else
