@@ -208,7 +208,7 @@ function animate() {
 	else			omega = omega - .15*dt;    
   omega = clamp (omega, 0, maxOmega);
   angle += omega*dt;
-  group.rotation.y = angle-Math.PI/2;
+  group.rotation.y = angle+Math.PI/2;
   
   angle = angle%(Math.PI*2);
   if(angle>Math.PI*2/3*2)
