@@ -19,24 +19,13 @@
 }
 
 .info{
-  color: rgb(255, 255, 255);
+  color: rgb(0, 0, 0);
   border-width: 3px;
   width: 150px;
   height: 30px;
   padding: 5px;
   text-align: center;
-  background-color: rgb(41, 105, 176, 0.5);
-  border-radius: 4px;
-}
-
-#text{
-  color: rgb(255, 255, 255);
-  border-width: 3px;
-  width: 150px;
-  height: 30px;
-  padding: 5px;
-  text-align: center;
-  background-color: rgb(41, 105, 176, 0.5);
+  background-color: rgb(200, 200, 200, 0.7);
   border-radius: 4px;
 }
 
@@ -176,6 +165,7 @@ function addMarkerHiro(){
   circle[2] = new THREE.Mesh( geometry, material );
   circle[2].rotation.x = -Math.PI/2;
   group.add (circle[2]);
+  group.rotation.y = -Math.PI/2;
   
   geometry = new THREE.ConeGeometry( radius/10, radius/5, 32 );
 	material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
@@ -211,9 +201,9 @@ function animate() {
   group.rotation.y = angle;
   
   angle = angle%(Math.PI*2);
-  if(angle>Math.PI*2/3*2-Math.PI/2)
+  if(angle>Math.PI*2/3*2)
     $('#text').css ('color', 'red'); 
-  else if(angle>Math.PI*2/3-Math.PI/2)
+  else if(angle>Math.PI*2/3)
     $('#text').css ('color', 'green');
   else
   	$('#text').css ('color', 'blue');
