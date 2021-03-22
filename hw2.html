@@ -8,12 +8,41 @@
 
 <body>
 <style>
-<div id="things">
-  <span class="info">桌子：37.2x47.3cm</span><br><br>
-  <span class="info">Marker：8.3x8.3cm</span><br><br>
-  <button id="button1">Start</button><br><br>
-  <span id="text">color</span>
-</div>
+#things{
+  position: absolute;
+  top: 2%;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  z-index: 2;
+  color: #ffffff;
+}
+
+.info{
+  color: rgb(0, 0, 0);
+  border-width: 3px;
+  width: 150px;
+  height: 30px;
+  padding: 5px;
+  text-align: center;
+  background-color: rgb(200, 200, 200, 0.7);
+  border-radius: 4px;
+}
+
+#text{
+  color: rgb(0, 0, 0);
+  border-width: 3px;
+  width: 150px;
+  height: 30px;
+  padding: 5px;
+  text-align: center;
+  background-color: rgb(200, 200, 200, 0.7);
+  border-radius: 4px;
+}
+
+body {
+  overflow: hidden;
+}
 </style>
 	
 <div id="things">
