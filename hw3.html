@@ -172,24 +172,15 @@ function init() {
   
   
   
-  var device = !!navigator.platform.match(/iPhone|iPod|iPad|Android/);
+  document.addEventListener('touchstart', onDocumentTouchStart, false);
+document.addEventListener('touchmove', onDocumentTouchStart, false);  // same callback
+document.addEventListener('touchend', onMouseUp, false);
 
-	if (device) {
-		$('#device').text ('use mobile device')
+// mousemove
+window.addEventListener( 'mousemove', onMouseMove, false );
+window.addEventListener( 'mousedown', onMouseDown, false );
+window.addEventListener( 'mouseup', onMouseUp, false );
 
-		// for those with touch screen
-    document.addEventListener('touchstart', onDocumentTouchStart, false);
-    document.addEventListener('touchmove', onDocumentTouchStart, false);  // same callback
-    document.addEventListener('touchend', onMouseUp, false);
-  }
-  else {
-    $('#device').text ('regular')
-
-    // mousemove
-    window.addEventListener( 'mousemove', onMouseMove, false );
-    window.addEventListener( 'mousedown', onMouseDown, false );
-    window.addEventListener( 'mouseup', onMouseUp, false );
-  }
 }
 
 	
