@@ -171,21 +171,19 @@ function init() {
   scene.add (markerHiro); 
   
   
-  
-  var device = !!navigator.platform.match(/iPhone|iPod|iPad|Android/);
   $('#device').text ( navigator.platform )
 
-	if (device) {
-		// for those with touch screen
-    document.addEventListener('touchstart', onDocumentTouchStart, false);
-    document.addEventListener('touchmove', onDocumentTouchStart, false);  // same callback
-    document.addEventListener('touchend', onMouseUp, false);
-  }
-  else {
+  if( !!navigator.platform.match(/Win32|MacIntel/) ) {
     // mousemove
     window.addEventListener( 'mousemove', onMouseMove, false );
     window.addEventListener( 'mousedown', onMouseDown, false );
     window.addEventListener( 'mouseup', onMouseUp, false );
+  }
+  else {
+  	// for those with touch screen
+    document.addEventListener('touchstart', onDocumentTouchStart, false);
+    document.addEventListener('touchmove', onDocumentTouchStart, false);  // same callback
+    document.addEventListener('touchend', onMouseUp, false);
   }
 }
 
