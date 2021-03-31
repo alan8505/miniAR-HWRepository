@@ -8,6 +8,8 @@
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 
 <div id="things">
+  <span id="device" class="info"></span>
+  <br><br>
   <span id="text">color</span>
 </div>
 
@@ -53,7 +55,7 @@ body {
 </style>
 <script>
 
- // global variables
+// global variables
 var renderer, scene, sceneHUD, camera, cameraHUD;
 var stats, raycaster, mouse;
 var arToolKitSource, arToolKitContext;
@@ -170,10 +172,10 @@ function init() {
   
   
   
-  var _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
+  var device = !!navigator.platform.match(/iPhone|iPod|iPad|Android/);
 
-	if (_iOSDevice) {
-		$('#iOSdevice').text ('use iPhone/iPad')
+	if (device) {
+		$('#device').text ('use mobile device')
 
 		// for those with touch screen
     document.addEventListener('touchstart', onDocumentTouchStart, false);
@@ -181,7 +183,7 @@ function init() {
     document.addEventListener('touchend', onMouseUp, false);
   }
   else {
-    $('#iOSdevice').text ('regular')
+    $('#device').text ('regular')
 
     // mousemove
     window.addEventListener( 'mousemove', onMouseMove, false );
@@ -321,7 +323,7 @@ function clamp (x, xLo, xHi) {
 	if (x < xLo) return xLo;
   if (x > xHi) return xHi;
   else return x;
-} 
+}
  
 </script>
 </body>
