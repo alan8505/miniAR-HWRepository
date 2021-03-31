@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<head>
+  
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://threejs.org/examples/js/libs/stats.min.js"></script>
+<script src="https://jyunming-chen.github.io/ar.js/three.js/build/ar.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+<div id="things">
+  <span id="text">color</span>
+</div>
+
+</head>
+
+<body>
+<style>
+#things{
+  position: absolute;
+  top: 2%;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  z-index: 2;
+  color: #ffffff;
+}
+
+.info{
+  color: rgb(0, 0, 0);
+  border-width: 3px;
+  width: 150px;
+  height: 30px;
+  padding: 5px;
+  text-align: center;
+  background-color: rgb(200, 200, 200, 0.7);
+  border-radius: 4px;
+}
+
+#text{
+  color: rgb(0, 0, 0);
+  border-width: 3px;
+  width: 150px;
+  height: 30px;
+  padding: 5px;
+  text-align: center;
+  background-color: rgb(200, 200, 200, 0.7);
+  border-radius: 4px;
+}
+
+body {
+  overflow: hidden;
+}
+</style>
+<script>
+
+ // global variables
+var renderer, scene, sceneHUD, camera, cameraHUD;
+var stats, raycaster, mouse;
+var arToolKitSource, arToolKitContext;
+var markerHiro;
+var clock = new THREE.Clock();
+var group, circle = new Array(3), cone, button;
+var angle = 0, omega = 0;
+var turn = false;
+
+var markerSize = 8.3;
+var tableSize = 37.2;
+var radius = tableSize/markerSize/2;
+
+var arMode = false;
+
+init();
+animate();
+
+//return;
+
+function init() {
+
+	// init renderer
+	renderer = new THREE.WebGLRenderer({
+		alpha: true
+	});
+  renderer.autoClear = false;
+	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.domElement.style.position = 'absolute'
+	renderer.domElement.style.top = '0px'
+	renderer.domElement.style.left = '0px'
+	document.body.appendChild( renderer.domElement );
+  
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+	stats = new Stats();
+	document.body.appendChild( stats.dom );
+
+	// init scene and camera
+	scene	= new THREE.Scene();
+  sceneHUD	= new THREE.Scene();
+	
+	// Create a BASIC camera
+  if (arMode){
+  	camera = new THREE.Camera();
+		scene.add(camera);
+  }
+  else{
+    camera = new THREE.PerspectiveCamera (45,  window.innerWidth/window.innerHeight, 0.1, 10000);
+    camera.position.y = 5;
+    camera.position.z = 5;
+    camera.lookAt (new THREE.Vector3(0,0,0));
+  }
+  
+  // Create HUD button
+  width = 15;
+  height = width/window.innerWidth*window.innerHeight;
+  cameraHUD = new THREE.OrthographicCamera( -width, width, height, -height, -10, 10 );
+  cameraHUD.position.y = 5;
+  var geometry, material;
+  geometry = new THREE.CircleGeometry( radius, 32);
+  material = new THREE.MeshBasicMaterial();
+  material.color = new THREE.Color("rgb(255,255,0)");
+  button = new THREE.Mesh( geometry, material );
+  sceneHUD.add(button);
+
+	////////////////////////////////////////////////////////////////////////////////
+	//          handle arToolkitSource
+	////////////////////////////////////////////////////////////////////////////////
+	
+  if (arMode){
+  	arToolkitSource = new THREEx.ArToolkitSource({
+      // to read from the webcam 
+      sourceType : 'webcam',
+    })
+
+    arToolkitSource.init(function onReady(){
+      onResize()
+    })
+
+    // handle resize
+    window.addEventListener('resize', function(){
+      arToolkitSource.onResizeElement()	
+      arToolkitSource.copyElementSizeTo(renderer.domElement)	
+      if( arToolkitContext.arController !== null ){
+        arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas)	
+      }	
+    })
+    
+    ////////////////////////////////////////////////////////////////////////////////
+    //          initialize arToolkitContext
+    ////////////////////////////////////////////////////////////////////////////////
+    
+    arToolkitContext = new THREEx.ArToolkitContext({
+      cameraParametersUrl: 'https://jyunming-chen.github.io/ar.js/data/data/camera_para.dat',
+      detectionMode: 'mono',
+      maxDetectionRate: 30,
+      canvasWidth: 80*3,
+      canvasHeight: 60*3,
+    })
+    // initialize it
+    arToolkitContext.init(function onCompleted(){
+      // copy projection matrix to camera
+      camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+    })
+
+  }
+  
+  
+  markerHiro = addMarkerHiro();
+  scene.add (markerHiro); 
+  
+  
+  
+  var _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
+
+	if (_iOSDevice) {
+		$('#iOSdevice').text ('use iPhone/iPad')
+
+		// for those with touch screen
+    document.addEventListener('touchstart', onDocumentTouchStart, false);
+    document.addEventListener('touchmove', onDocumentTouchStart, false);  // same callback
+    document.addEventListener('touchend', onMouseUp, false);
+  }
+  else {
+    $('#iOSdevice').text ('regular')
+
+    // mousemove
+    window.addEventListener( 'mousemove', onMouseMove, false );
+    window.addEventListener( 'mousedown', onMouseDown, false );
+    window.addEventListener( 'mouseup', onMouseUp, false );
+  }
+}
+
+	
+function addMarkerHiro(){
+	let markerRoot = new THREE.Group()
+  var artoolkitMarker;
+  if (arMode){
+  	artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+      type : 'pattern',
+      patternUrl :  'https://jyunming-chen.github.io/ar.js/data/data/patt.kanji'
+    })
+  }
+	
+
+	// add things
+  group = new THREE.Group();
+  markerRoot.add (group); 
+  
+  var geometry, material;
+  geometry = new THREE.CircleGeometry( radius, 32, 0, Math.PI*2/3);
+  material = new THREE.MeshBasicMaterial();
+  material.color = new THREE.Color("rgb(255,0,0)");
+  circle[0] = new THREE.Mesh( geometry, material );
+  circle[0].rotation.x = -Math.PI/2;
+  group.add (circle[0]);
+  
+  geometry = new THREE.CircleGeometry( radius, 32, Math.PI*2/3, Math.PI*2/3);
+  material = new THREE.MeshBasicMaterial();
+  material.color = new THREE.Color("rgb(0,255,0)");
+  circle[1] = new THREE.Mesh( geometry, material );
+  circle[1].rotation.x = -Math.PI/2;
+  group.add (circle[1]);
+  
+  geometry = new THREE.CircleGeometry( radius, 32, -Math.PI*2/3, Math.PI*2/3);
+  material = new THREE.MeshBasicMaterial();
+  material.color = new THREE.Color("rgb(0,0,255)");
+  circle[2] = new THREE.Mesh( geometry, material );
+  circle[2].rotation.x = -Math.PI/2;
+  group.add (circle[2]);
+  
+  geometry = new THREE.ConeGeometry( radius/10, radius/5, 32 );
+	material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+	cone = new THREE.Mesh( geometry, material );
+  cone.rotation.x = Math.PI/2;
+  cone.position.set(0, 0, -radius);
+  markerRoot.add (cone); 
+  
+  
+  // GridHelper
+  //const gridHelper = new THREE.GridHelper( 1, 10 );
+	//markerRoot.add( gridHelper );
+		
+	return markerRoot;
+}	
+
+var speed = 60;
+
+function animate() {
+	requestAnimationFrame (animate);
+	stats.update();
+  
+  
+  if (arMode){
+  	if( arToolkitSource.ready === false )	return
+  	arToolkitContext.update( arToolkitSource.domElement )
+  }
+	
+  
+	var dt = 0.2;
+  
+  var maxOmega = 2;
+  if(turn)	omega = omega + 0.15*dt;
+	else			omega = omega - 0.15*dt;
+  
+  omega = clamp (omega, 0, maxOmega);
+  angle += omega*dt;
+  group.rotation.y = angle+Math.PI/2;
+  
+  angle = angle%(Math.PI*2);
+  if(angle>Math.PI*2/3*2)
+    $('#text').css ('color', 'red');
+  else if(angle>Math.PI*2/3)
+    $('#text').css ('color', 'green');
+  else
+  	$('#text').css ('color', 'blue');
+    
+    
+  raycaster.setFromCamera( mouse, cameraHUD );
+
+	
+  //renderer.clear();
+	renderer.render (scene, camera);
+  renderer.render (sceneHUD, cameraHUD);
+}
+
+function onMouseMove( event ) {
+	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+}
+
+function onMouseDown() {
+	//console.log("mouseDown");
+  var intersects = raycaster.intersectObjects( sceneHUD.children );
+
+	if (intersects.length>0){
+  	intersects[0].object.material.color.set( 0xff0000 );
+    turn = true;
+  }
+}
+
+function onMouseUp() {
+	//console.log("mouseUp");
+  turn = false;
+  button.material.color.set( new THREE.Color("rgb(255,255,0)") );
+}
+
+function onDocumentTouchStart(event) {
+  if (event.touches.length == 1) {    
+    event.preventDefault();
+    mouse.x = ( event.touches[0].pageX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( event.touches[0].pageY / window.innerHeight ) * 2 + 1;
+
+    if (intersects.length>0){
+      intersects[0].object.material.color.set( 0xff0000 );
+      turn = true;
+    }
+  }
+}
+
+function clamp (x, xLo, xHi) {
+	if (x < xLo) return xLo;
+  if (x > xHi) return xHi;
+  else return x;
+} 
+ 
+</script>
+</body>
