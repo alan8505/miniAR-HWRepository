@@ -69,7 +69,7 @@ var markerSize = 8.3;
 var tableSize = 37.2;
 var radius = tableSize/markerSize/2;
 
-var arMode = false;
+var arMode = true;
 
 init();
 animate();
@@ -178,11 +178,13 @@ function init() {
     window.addEventListener( 'mousemove', onMouseMove, false );
     window.addEventListener( 'mousedown', onMouseDown, false );
     window.addEventListener( 'mouseup', onMouseUp, false );
+    document.addEventListener('touchstart', onDocumentTouchStart, false);
+    document.addEventListener('touchend', onMouseUp, false);
   }
   else {
   	// for those with touch screen
+    //document.addEventListener('touchmove', onDocumentTouchStart, false);
     document.addEventListener('touchstart', onDocumentTouchStart, false);
-    document.addEventListener('touchmove', onDocumentTouchStart, false);  // same callback
     document.addEventListener('touchend', onMouseUp, false);
   }
   
