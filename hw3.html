@@ -69,7 +69,7 @@ var markerSize = 8.3;
 var tableSize = 37.2;
 var radius = tableSize/markerSize/2;
 
-var arMode = true;
+var arMode = false;
 
 init();
 animate();
@@ -185,6 +185,8 @@ function init() {
     document.addEventListener('touchmove', onDocumentTouchStart, false);  // same callback
     document.addEventListener('touchend', onMouseUp, false);
   }
+  
+  window.addEventListener ('resize', onWindowResize, false);
 }
 
 	
@@ -249,7 +251,9 @@ function animate() {
   
   if (arMode){
   	if( arToolkitSource.ready === false )	return
-  	arToolkitContext.update( arToolkitSource.domElement )
+  	arToolkitContext.update( arToolkitSource.domElement );
+    //raycaster.ray.origin.set (0,0,0);
+    //raycaster.ray.direction.set( ndcX, ndcY, 0.5 ).unproject( cameraHUD ).sub( raycaster.ray.origin ).normalize();
   }
 	
   
@@ -270,9 +274,6 @@ function animate() {
     $('#text').css ('color', 'green');
   else
   	$('#text').css ('color', 'blue');
-    
-    
-  raycaster.setFromCamera( mouse, cameraHUD );
 
 	
   //renderer.clear();
@@ -287,6 +288,7 @@ function onMouseMove( event ) {
 
 function onMouseDown() {
 	//console.log("mouseDown");
+  raycaster.setFromCamera( mouse, cameraHUD );
   var intersects = raycaster.intersectObjects( sceneHUD.children );
 
 	if (intersects.length>0){
@@ -306,12 +308,24 @@ function onDocumentTouchStart(event) {
     event.preventDefault();
     mouse.x = ( event.touches[0].pageX / window.innerWidth ) * 2 - 1;
     mouse.y = - ( event.touches[0].pageY / window.innerHeight ) * 2 + 1;
+    raycaster.setFromCamera( mouse, cameraHUD );
 
     if (intersects.length>0){
       intersects[0].object.material.color.set( 0xff0000 );
       turn = true;
     }
   }
+}
+
+function onWindowResize ()
+{
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+  height = width/window.innerWidth*window.innerHeight;
+  cameraHUD.top = height;
+  cameraHUD.bottom = -height;
+	cameraHUD.updateProjectionMatrix();
+	renderer.setSize (window.innerWidth, window.innerHeight);
 }
 
 function clamp (x, xLo, xHi) {
