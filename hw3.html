@@ -118,7 +118,7 @@ function init() {
   width = height/window.innerHeight*window.innerWidth;
   cameraHUD = new THREE.OrthographicCamera( -width, width, height, -height, -10, 10 );
   var geometry, material;
-  geometry = new THREE.CircleGeometry( radius*2, 32);
+  geometry = new THREE.CircleGeometry( radius, 32);
   material = new THREE.MeshBasicMaterial();
   material.color = new THREE.Color("rgb(255,255,0)");
   loader.load(
