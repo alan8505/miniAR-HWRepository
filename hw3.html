@@ -69,7 +69,7 @@ var markerSize = 8.3;
 var tableSize = 37.2;
 var radius = tableSize/markerSize/2;
 
-var arMode = true;
+var arMode = false;
 
 init();
 animate();
@@ -172,15 +172,21 @@ function init() {
   
   
   
-  document.addEventListener('touchstart', onDocumentTouchStart, false);
-document.addEventListener('touchmove', onDocumentTouchStart, false);  // same callback
-document.addEventListener('touchend', onMouseUp, false);
+  var device = !!navigator.platform.match(/iPhone|iPod|iPad|Android/);
+  $('#device').text ( navigator.platform )
 
-// mousemove
-window.addEventListener( 'mousemove', onMouseMove, false );
-window.addEventListener( 'mousedown', onMouseDown, false );
-window.addEventListener( 'mouseup', onMouseUp, false );
-
+	if (device) {
+		// for those with touch screen
+    document.addEventListener('touchstart', onDocumentTouchStart, false);
+    document.addEventListener('touchmove', onDocumentTouchStart, false);  // same callback
+    document.addEventListener('touchend', onMouseUp, false);
+  }
+  else {
+    // mousemove
+    window.addEventListener( 'mousemove', onMouseMove, false );
+    window.addEventListener( 'mousedown', onMouseDown, false );
+    window.addEventListener( 'mouseup', onMouseUp, false );
+  }
 }
 
 	
