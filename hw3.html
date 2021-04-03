@@ -115,8 +115,9 @@ function init() {
   }
   
   // Create HUD button
+  whRatio = window.innerWidth / window.innerHeight;
   height = 15;
-  width = height/window.innerHeight*window.innerWidth;
+  width = height*whRatio;
   cameraHUD = new THREE.OrthographicCamera( -width, width, height, -height, -10, 10 );
   var geometry, material;
   geometry = new THREE.CircleGeometry( radius, 32);
@@ -145,12 +146,12 @@ function init() {
     })
 
     arToolkitSource.init(function onReady(){
-      onResize();
+      onWindowResize();
     })
 
     // handle resize
     window.addEventListener('resize', function(){
-      onResize();
+      onWindowResize();
     })
     
     
@@ -173,29 +174,12 @@ function init() {
 
   }
   
-  function onResize()
-  {
-    arToolkitSource.onResizeElement();
-    arToolkitSource.copyElementSizeTo(renderer.domElement);
-    if( arToolkitContext.arController !== null ){
-      arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
-    }
-    
-    //camera.aspect = window.innerWidth / window.innerHeight;
-    //camera.updateProjectionMatrix();
-    height = 15;
-    width = height/window.innerHeight*window.innerWidth;
-    cameraHUD = new THREE.OrthographicCamera( -width, width, height, -height, -10, 10 );
-    button.position.y = -(height/3*2);
-    renderer.setSize (window.innerWidth, window.innerHeight);
-  }
-  
   
   markerHiro = addMarkerHiro();
   scene.add (markerHiro); 
   
   
-  $('#device').text ( navigator.platform )
+  $('#device').text ( navigator.platform );
 
   if( !!navigator.platform.match(/Win32|MacIntel/) ) {
     // mousemove
@@ -345,13 +329,18 @@ function onDocumentTouchStart(event) {
 
 function onWindowResize()
 {
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
+	arToolkitSource.onResizeElement();
+  //arToolkitSource.copyElementSizeTo(renderer.domElement);
+  if( arToolkitContext.arController !== null ){
+    arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+  }
+
+  whRatio = window.innerWidth / window.innerHeight;
   height = 15;
-  width = height/window.innerHeight*window.innerWidth;
+  width = height*whRatio;
   cameraHUD = new THREE.OrthographicCamera( -width, width, height, -height, -10, 10 );
   button.position.y = -(height/3*2);
-	renderer.setSize (window.innerWidth, window.innerHeight);
+  renderer.setSize (window.innerWidth, window.innerHeight);
 }
 
 function clamp (x, xLo, xHi) {
