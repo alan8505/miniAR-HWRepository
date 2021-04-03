@@ -181,8 +181,8 @@ function init() {
       arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
     }
     
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
+    //camera.aspect = window.innerWidth / window.innerHeight;
+    //camera.updateProjectionMatrix();
     height = 15;
     width = height/window.innerHeight*window.innerWidth;
     cameraHUD = new THREE.OrthographicCamera( -width, width, height, -height, -10, 10 );
