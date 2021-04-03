@@ -89,7 +89,6 @@ function init() {
 	renderer.domElement.style.position = 'absolute'
 	renderer.domElement.style.top = '0px'
 	renderer.domElement.style.left = '0px'
-	renderer.domElement.id = "renderer";
 	document.body.appendChild( renderer.domElement );
   
   raycaster = new THREE.Raycaster();
@@ -146,17 +145,14 @@ function init() {
     })
 
     arToolkitSource.init(function onReady(){
-      onResize()
+      onResize();
     })
 
     // handle resize
     window.addEventListener('resize', function(){
-      arToolkitSource.onResizeElement()	
-      arToolkitSource.copyElementSizeTo(renderer.domElement)	
-      if( arToolkitContext.arController !== null ){
-        arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas)	
-      }	
+      onResize();
     })
+    
     
     ////////////////////////////////////////////////////////////////////////////////
     //          initialize arToolkitContext
@@ -175,6 +171,15 @@ function init() {
       camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
     })
 
+  }
+  
+  function onResize()
+  {
+    arToolkitSource.onResizeElement()	
+    arToolkitSource.copyElementSizeTo(renderer.domElement)	
+    if( arToolkitContext.arController !== null ){
+      arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas)	
+    }	
   }
   
   
@@ -199,7 +204,7 @@ function init() {
     document.addEventListener('touchend', onMouseUp, false);
   }
   
-  window.addEventListener ('resize', onWindowResize, false);
+  //window.addEventListener ('resize', onWindowResize, false);
 }
 
 	
@@ -331,7 +336,7 @@ function onDocumentTouchStart(event) {
   }
 }
 
-function onWindowResize ()
+function onWindowResize()
 {
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
