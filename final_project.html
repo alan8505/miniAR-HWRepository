@@ -515,44 +515,15 @@ function onMouseDown() {
   {
   	button.material.color.set( 0xff0000 );
     turn = true;
-    
-    // Control shot power
-    shotPower = 0;
-    var ms= 0;
-    shotTimer = setInterval(function()
-    {
-    	if (ms>=20) clearInterval(shotTimer);
-      shotPower+=20*scale;
-      ms++;
-    }, 100);
+    increaseShotPower();
   }
-  
 }
 
 function onMouseUp() {
 	//console.log("mouseUp");
   button.material.color.set( new THREE.Color("rgb(255,255,255)") );
   
-  // Shot ball
-  var vec = new THREE.Vector3();
-  if (arMode){
-  	vec.x = markerHiro.position.x;
-  	vec.z = markerHiro.position.z;
-  }
-  else{
-  	vec.x = camera.position.x;
-  	vec.z = camera.position.z;
-  }
-  
-  vec.normalize().multiplyScalar(shotPower);
-  if (turn){
-  	turn = !turn;
-    clearInterval(shotTimer);
-    if (arMode)
-    	balls[0].vel.add(vec);
-    else
-    	balls[0].vel.sub(vec);
-  }
+  shotBall();
 }
 
 // Touch Event
@@ -568,6 +539,7 @@ function onDocumentTouchStart(event) {
     if (intersects.length>0){
       button.material.color.set( 0xff0000 );
       turn = true;
+      increaseShotPower();
     }
   }
 }
@@ -587,6 +559,41 @@ function onWindowResize()
   cameraHUD = new THREE.OrthographicCamera( -width, width, height, -height, -10, 10 );
   button.position.y = -(height/3*2);
   renderer.setSize (window.innerWidth, window.innerHeight);
+}
+
+function increaseShotPower()
+{
+  shotPower = 0;
+  var ms= 0;
+  shotTimer = setInterval(function()
+  {
+    if (ms>=20) clearInterval(shotTimer);
+    shotPower+=20*scale;
+    ms++;
+  }, 100);
+}
+
+function shotBall()
+{
+	var vec = new THREE.Vector3();
+  if (arMode){
+  	vec.x = markerHiro.position.x;
+  	vec.z = markerHiro.position.z;
+  }
+  else{
+  	vec.x = camera.position.x;
+  	vec.z = camera.position.z;
+  }
+  
+  vec.normalize().multiplyScalar(shotPower);
+  if (turn){
+  	turn = !turn;
+    clearInterval(shotTimer);
+    if (arMode)
+    	balls[0].vel.add(vec);
+    else
+    	balls[0].vel.sub(vec);
+  }
 }
 
 </script>
