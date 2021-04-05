@@ -1,14 +1,570 @@
 <!DOCTYPE html>
 <head>
-<script async src="//jsfiddle.net/alan8505/rg6ants5/226/embed/"></script>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://threejs.org/examples/js/libs/stats.min.js"></script>
+<script src="https://jyunming-chen.github.io/ar.js/three.js/build/ar.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+<div class="things">
+  <span id="device" class="info"></span>
+  <br><br>
+  <span id="point">Point: 0</span>
+</div>
+
+<audio id="collisionSound" style="display:none">
+  <source src="https://alan8505.github.io/miniAR-HWRepository/sounds/shot.mp3" type="audio/mp3">
+</audio>
+
+<audio id="dropSound" style="display:none">
+  <source src="https://alan8505.github.io/miniAR-HWRepository/sounds/hole.mp3" type="audio/mp3">
+</audio>
 </head>
 
 <body>
 <style>
+.things{
+  position: relative;
+  top: 10px;
+  text-align: center;
+  z-index: 2;
+  color: #ffffff;
+}
 
+.info{
+  color: rgb(0, 0, 0);
+  border-width: 3px;
+  width: 150px;
+  height: 30px;
+  padding: 5px;
+  text-align: center;
+  background-color: rgb(200, 200, 200, 0.7);
+  border-radius: 4px;
+}
+
+#point{
+  color: rgb(0, 0, 0);
+  border-width: 3px;
+  width: 150px;
+  height: 30px;
+  padding: 5px;
+  text-align: center;
+  background-color: rgb(200, 200, 200, 0.7);
+  border-radius: 4px;
+}
+
+body {
+  overflow: hidden;
+}
 </style>
 
 <script>
+// global variables
+var renderer, scene, sceneHUD, camera, cameraHUD;
+var clock, stats, raycaster, mouse, loader;
+var arToolKitSource, arToolKitContext, markerHiro;
+var button;
+var turn = false;
+
+var markerSize = 8.3;
+var tableSize = 37.2;
+var radius = tableSize/markerSize/2;
+
+//----Test value----
+var arMode = true;
+var test = true;
+//------------------
+
+var point = 0;
+
+var shotTimer, shotPower;
+var collisionSound, dropSound;
+var balls = [], hole = [];
+
+var bRadius = 10;  // puck radius
+var wallDistance = 100;  // distance from (0,0) to wall
+var wallTHK = wallDistance/10;
+var groundFriction = 0.5;
+
+
+class Ball{
+
+	constructor(pos, vel, color, radius)
+  {
+  	//this.geometry = new THREE.CylinderGeometry(radius, radius, radius/2, 32);
+    this.geometry = new THREE.SphereGeometry( radius, 32, 32 );
+		this.material = new THREE.MeshLambertMaterial();
+    this.material.color = color;
+    this.radius = radius;
+    this.mass = 1;
+  	this.pos = pos
+    this.vel = vel;
+    this.mesh = new THREE.Mesh(this.geometry, this.material);
+    this.mesh.position.copy (this.pos);
+  }
+  
+  update(dt)
+  {
+  	this.pos.add( this.vel.clone().multiplyScalar(dt) );
+  	
+		this.wallCollision();
+    this.ballCollision();
+    this.holeCollision();
+    
+    this.mesh.position.copy (this.pos);
+    
+    // Compute Friction
+    var friction = this.vel.clone().normalize().multiplyScalar(groundFriction);
+    if ( Math.abs(this.vel.x) < Math.abs(friction.x) )
+    	this.vel.x = 0;
+    else
+    	this.vel.x -= friction.x;
+    
+    if ( Math.abs(this.vel.z) < Math.abs(friction.z) )
+    	this.vel.z = 0;
+    else
+    	this.vel.z -= friction.z;
+  }
+  
+  wallCollision(){
+  	if (this.pos.x > wallDistance-this.radius) {
+      this.vel.x *= -1;
+      this.pos.x = wallDistance-this.radius;
+      collisionSound.cloneNode(true).play();
+    }
+    if (this.pos.x < -wallDistance+this.radius) {
+      this.vel.x *= -1;
+      this.pos.x = -wallDistance+this.radius;
+      collisionSound.cloneNode(true).play();
+    }
+    if (this.pos.z > wallDistance-this.radius) {
+      this.vel.z *= -1;
+      this.pos.z = wallDistance-this.radius;
+      collisionSound.cloneNode(true).play();
+    }
+    if (this.pos.z < -wallDistance+this.radius) {
+      this.vel.z *= -1;
+      this.pos.z = -wallDistance+this.radius;
+      collisionSound.cloneNode(true).play();
+    }
+  }
+  
+  ballCollision()
+  {
+  	var itself = this;
+    balls.forEach(function(item){
+    	if(itself==item) return;
+    	let x = itself.pos.x-item.pos.x;
+      let z = itself.pos.z-item.pos.z;
+    	let d = itself.pos.distanceTo(item.pos);
+  		if(d < itself.radius+item.radius){
+      	itself.pos.x += (itself.radius+item.radius-d)/d*x;
+        itself.pos.z += (itself.radius+item.radius-d)/d*z;
+        
+        let velocity1 = new THREE.Vector2(itself.vel.x, itself.vel.z);
+    		let velocity2 = new THREE.Vector2(item.vel.x, item.vel.z);
+        
+        let vNorm = new THREE.Vector2(itself.pos.x - item.pos.x, itself.pos.z - item.pos.z);
+      
+        let unitVNorm = vNorm.clone().normalize();
+        let unitVTan = new THREE.Vector2(-unitVNorm.y, unitVNorm.x);
+
+        let v1n = velocity1.clone().dot(unitVNorm);
+        let v1t = velocity1.clone().dot(unitVTan);
+
+        let v2n = velocity2.clone().dot(unitVNorm);
+        let v2t = velocity2.clone().dot(unitVTan);
+
+        let v1nAfter = (v1n * (itself.mass - item.mass) + 2 * item.mass * v2n) / (itself.mass + item.mass);
+        let v2nAfter = (v2n * (item.mass - itself.mass) + 2 * itself.mass * v1n) / (itself.mass + item.mass);
+        
+        if (v1nAfter < v2nAfter)
+          return;
+          
+        if ( itself.vel.x!=0 && itself.vel.z!=0){
+        	let se = collisionSound.cloneNode(true);
+        	se.volume = 0.5;
+          se.play();
+        }
+          
+        let v1VectorNorm = unitVNorm.clone().multiplyScalar(v1nAfter);
+        let v1VectorTan = unitVTan.clone().multiplyScalar(v1t);
+
+        let v2VectorNorm = unitVNorm.clone().multiplyScalar(v2nAfter);
+        let v2VectorTan = unitVTan.clone().multiplyScalar(v2t);
+        
+        let velocity1After = v1VectorNorm.clone().add(v1VectorTan);
+        let velocity2After = v2VectorNorm.clone().add(v2VectorTan);
+        let tmp = v1VectorNorm.x + v1VectorTan.x
+        
+        itself.vel.x = velocity1After.x;
+        itself.vel.z = velocity1After.y;
+
+        item.vel.x = velocity2After.x;
+        item.vel.z = velocity2After.y;
+      }
+  	});
+  }
+  
+  holeCollision(){
+  	var itself = this;
+    hole.forEach(p=>
+    {
+    	var d = this.pos.distanceTo( new THREE.Vector3(p[0], bRadius, p[1]) );
+      if(d < this.radius)
+      {
+      	if (itself==balls[0]){
+        	point-=20;
+        	$('#point').text( "Point: " + point );
+        	balls[0].pos.set(0, bRadius, 50);
+          balls[0].vel.set(0, 0, 0);
+          return;
+        }
+        point+=10;
+        $('#point').text( "Point: " + point );
+        dropSound.cloneNode(true).play();
+        itself.material.visible = false;
+        var i = 0;
+        balls.forEach(function(item)
+        {
+          if(itself==item){
+          	balls.splice(i,1);
+            return;
+          }
+          i++;
+        });
+        
+      }
+    });
+    
+  }
+  
+}
+
+init();
+animate();
+
+//return;
+
+function init() {
+
+	// init renderer
+	renderer = new THREE.WebGLRenderer({
+		alpha: true
+	});
+  renderer.autoClear = false;
+	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.domElement.style.position = 'absolute'
+	renderer.domElement.style.top = '0px'
+	renderer.domElement.style.left = '0px'
+	document.body.appendChild( renderer.domElement );
+  
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+  loader =  new THREE.TextureLoader();
+  clock = new THREE.Clock();
+
+	stats = new Stats();
+	document.body.appendChild( stats.dom );
+
+	// init scene and camera
+	scene	= new THREE.Scene();
+  sceneHUD	= new THREE.Scene();
+	
+	// Create a BASIC camera
+  if (arMode){
+  	camera = new THREE.Camera();
+		scene.add(camera);
+  }
+  else{
+    camera = new THREE.PerspectiveCamera (45,  window.innerWidth/window.innerHeight, 0.1, 10000);
+    camera.position.y = 150;
+    camera.position.z = 150;
+    camera.lookAt (new THREE.Vector3(0,0,0));
+    // Light
+    var pointLight = new THREE.PointLight (0xffffff);
+    pointLight.position.set (0,300,200);
+    scene.add (pointLight);
+  }
+  
+  // Create Sound
+  collisionSound = document.getElementById ('collisionSound');
+  dropSound = document.getElementById ('dropSound');
+  
+  // Create hole
+  let w = wallDistance;
+  let r = bRadius;
+  hole = [ [w-r, w-r], [-w+r, w-r], [w-r, -w+r], [-w+r, -w+r] ];
+  
+  // Create HUD button
+  whRatio = window.innerWidth / window.innerHeight;
+  height = 15;
+  width = height*whRatio;
+  cameraHUD = new THREE.OrthographicCamera( -width, width, height, -height, -10, 10 );
+  var geometry, material;
+  geometry = new THREE.CircleGeometry( radius, 32);
+  material = new THREE.MeshBasicMaterial();
+  material.color = new THREE.Color("rgb(255,255,0)");
+  loader.load(
+    'https://i.imgur.com/A6XsjLi.jpg',
+    function ( texture ) {
+    	texture.repeat.set(0.4, 0.4);
+      texture.offset.set(0.27, 0.27);
+      button.material = new THREE.MeshBasicMaterial( { map: texture } );
+    }
+  );
+  button = new THREE.Mesh( geometry, material );
+  button.position.y = -(height/3*2);
+  sceneHUD.add(button);
+
+	////////////////////////////////////////////////////////////////////////////////
+	//          handle arToolkitSource
+	////////////////////////////////////////////////////////////////////////////////
+	
+  if (arMode){
+  	arToolkitSource = new THREEx.ArToolkitSource({
+      // to read from the webcam 
+      sourceType : 'webcam',
+    })
+
+    arToolkitSource.init(function onReady(){
+      onWindowResize();
+    })
+
+    // handle resize
+    window.addEventListener('resize', function(){
+      onWindowResize();
+    })
+    
+    
+    ////////////////////////////////////////////////////////////////////////////////
+    //          initialize arToolkitContext
+    ////////////////////////////////////////////////////////////////////////////////
+    
+    arToolkitContext = new THREEx.ArToolkitContext({
+      cameraParametersUrl: 'https://jyunming-chen.github.io/ar.js/data/data/camera_para.dat',
+      detectionMode: 'mono',
+      maxDetectionRate: 30,
+      canvasWidth: 80*3,
+      canvasHeight: 60*3,
+    })
+    // initialize it
+    arToolkitContext.init(function onCompleted(){
+      // copy projection matrix to camera
+      camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+    })
+
+  }
+  
+  
+  markerHiro = addMarkerHiro();
+  scene.add (markerHiro);
+  
+  
+  $('#device').text ( navigator.platform );
+
+  if( !!navigator.platform.match(/Win32|MacIntel/) ) {
+    // mousemove
+    window.addEventListener( 'mousemove', onMouseMove, false );
+    window.addEventListener( 'mousedown', onMouseDown, false );
+    window.addEventListener( 'mouseup', onMouseUp, false );
+    document.addEventListener('touchstart', onDocumentTouchStart, false);
+    document.addEventListener('touchend', onMouseUp, false);
+  }
+  else {
+  	// for those with touch screen
+    //document.addEventListener('touchmove', onDocumentTouchStart, false);
+    document.addEventListener('touchstart', onDocumentTouchStart, false);
+    document.addEventListener('touchend', onMouseUp, false);
+  }
+  
+  document.onkeydown = keyFunction;
+  function keyFunction(event){
+  	console.log(event.keyCode);
+    if (event.keyCode==39)
+    	camera.position.add( new THREE.Vector3(5, 0, 0) );
+  	if (event.keyCode==37)
+  		camera.position.add( new THREE.Vector3(-5, 0, 0) );
+    camera.lookAt( new THREE.Vector3(0, 0, 0) );
+  }
+  
+}
+
+	
+function addMarkerHiro(){
+	let markerRoot = new THREE.Group();
+  markerRoot.scale = new THREE.Vector3(0.1, 0.1, 0.1);
+  var artoolkitMarker;
+  if (arMode){
+  	artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+      type : 'pattern',
+      patternUrl :  'https://jyunming-chen.github.io/ar.js/data/data/patt.hiro'
+    })
+  }
+	
+  
+  // Create Ball
+  let pos = new THREE.Vector3(0, bRadius, 50);
+  let vel = new THREE.Vector3();
+  let color = new THREE.Color().setHSL(0, 1, 1);
+  let ball = new Ball(pos, vel, color, bRadius);
+  markerRoot.add (ball.mesh);
+  balls.push(ball);
+  
+  for(let i=0; i<4; i++){
+  	for(let j=0; j<i+1; j++){
+      let pos = new THREE.Vector3( 0+bRadius*j, bRadius, -15*i);
+      let vel = new THREE.Vector3(0 ,0 ,0);
+      let color = new THREE.Color().setHSL(Math.random(), 1, 0.5);
+      let ball = new Ball(pos, vel, color, bRadius);
+      markerRoot.add (ball.mesh);
+      balls.push(ball);
+  	}
+  }
+  
+  // Create Ground
+  var geometry, material;
+  geometry = new THREE.BoxGeometry (wallDistance*2, wallTHK, wallDistance*2);
+	material = new THREE.MeshPhongMaterial ({color: 0x00cc66});
+  ground = new THREE.Mesh (geometry, material);
+  ground.position.set (0, -(wallTHK/2), 0);
+	markerRoot.add (ground);
+  
+  // Create Wall
+  geometry = new THREE.BoxGeometry (wallTHK, wallTHK*2, (wallDistance+wallTHK)*2);
+	material = new THREE.MeshPhongMaterial ({color: 0x663300});
+  var wall = new Array(4);
+  for(let i=0;i<4;i++)	wall[i] = new THREE.Mesh (geometry, material);
+  wall[0].position.set (wallDistance+wallTHK/2, wallTHK, 0);
+  wall[1].position.set (-(wallDistance+wallTHK/2), wallTHK, 0);
+  wall[2].position.set (0, wallTHK, wallDistance+wallTHK/2);
+  wall[2].rotation.y = Math.PI/2;
+  wall[3].position.set (0, wallTHK, -(wallDistance+wallTHK/2));
+  wall[3].rotation.y = Math.PI/2;
+  for(let i=0;i<4;i++)	markerRoot.add (wall[i]);
+  
+  // Cteate Hole
+  geometry = new THREE.CircleGeometry(bRadius, 32);
+	material = new THREE.MeshLambertMaterial({color: 0x000000});
+  hole.forEach(p=>
+  {
+  	let h = new THREE.Mesh (geometry, material);
+    h.rotation.x = -(Math.PI/2);
+    h.position.set(p[0], 0.001, p[1]);
+    markerRoot.add(h);
+  });
+  
+  // GridHelper
+  //const gridHelper = new THREE.GridHelper( 1, 10 );
+	//markerRoot.add( gridHelper );
+		
+	return markerRoot;
+}
+
+var speed = 60;
+
+function animate() {
+	requestAnimationFrame (animate);
+	stats.update();
+  
+  if (arMode){
+  	if( arToolkitSource.ready === false )	return
+  	arToolkitContext.update( arToolkitSource.domElement );
+    //raycaster.ray.origin.set (0,0,0);
+    //raycaster.ray.direction.set( ndcX, ndcY, 0.5 ).unproject( cameraHUD ).sub( raycaster.ray.origin ).normalize();
+  }
+
+	var dt = clock.getDelta();
+  
+  balls.forEach(function(ball){
+  	ball.update(dt);
+  });
+  
+  //renderer.clear();
+	renderer.render (scene, camera);
+  renderer.render (sceneHUD, cameraHUD);
+}
+
+// Mouse Event
+
+function onMouseMove( event ) {
+	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+}
+
+function onMouseDown() {
+	//console.log("mouseDown");
+  raycaster.setFromCamera( mouse, cameraHUD );
+  var intersects = raycaster.intersectObjects( sceneHUD.children );
+
+	if (intersects.length>0 && intersects[0].object==button)
+  {
+  	button.material.color.set( 0xff0000 );
+    turn = true;
+    
+    // Control shot power
+    shotPower = 0;
+    var ms= 0;
+    shotTimer = setInterval(function()
+    {
+    	if (ms>=20) clearInterval(shotTimer);
+      shotPower+=20;
+      ms++;
+    }, 100);
+  }
+  
+}
+
+function onMouseUp() {
+	//console.log("mouseUp");
+  button.material.color.set( new THREE.Color("rgb(255,255,255)") );
+  
+  // Shot ball
+  var vec = new THREE.Vector3();
+  vec.x = camera.position.x;
+  vec.z = camera.position.z;
+  vec.normalize().multiplyScalar(shotPower);
+  if (turn){
+  	turn = !turn;
+    clearInterval(shotTimer);
+  	balls[0].vel.sub(vec);
+  }
+}
+
+// Touch Event
+
+function onDocumentTouchStart(event) {
+  if (event.touches.length == 1) {    
+    //event.preventDefault();
+    mouse.x = ( event.touches[0].pageX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( event.touches[0].pageY / window.innerHeight ) * 2 + 1;
+    raycaster.setFromCamera( mouse, cameraHUD );
+
+		var intersects = raycaster.intersectObjects( sceneHUD.children );
+    if (intersects.length>0 && intersects[0]==button){
+      button.object.material.color.set( 0xff0000 );
+      turn = true;
+    }
+  }
+}
+
+function onWindowResize()
+{
+	arToolkitSource.onResizeElement();
+  //arToolkitSource.copyElementSizeTo(renderer.domElement);
+  if( arToolkitContext.arController !== null ){
+    arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+  }
+
+  whRatio = window.innerWidth / window.innerHeight;
+  //whRatio = renderer.domElement.style.width / renderer.domElement.style.height;
+  height = 15;
+  width = height*whRatio;
+  cameraHUD = new THREE.OrthographicCamera( -width, width, height, -height, -10, 10 );
+  button.position.y = -(height/3*2);
+  renderer.setSize (window.innerWidth, window.innerHeight);
+}
 
 </script>
 </body>
