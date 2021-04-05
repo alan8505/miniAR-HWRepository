@@ -441,7 +441,7 @@ function addMarkerHiro(){
   
   // Create Wall
   geometry = new THREE.BoxGeometry (wallTHK, wallTHK*2, (wallDistance+wallTHK)*2);
-	material = new THREE.MeshPhongMaterial ({color: 0x663300});
+	material = new THREE.MeshToonMaterial ({color: 0x663300});
   var wall = new Array(4);
   for(let i=0;i<4;i++)	wall[i] = new THREE.Mesh (geometry, material);
   wall[0].position.set (wallDistance+wallTHK/2, wallTHK, 0);
@@ -454,7 +454,7 @@ function addMarkerHiro(){
   
   // Cteate Hole
   geometry = new THREE.CircleGeometry(bRadius, 32);
-	material = new THREE.MeshLambertMaterial({color: 0x000000});
+	material = new THREE.MeshToonMaterial({color: 0x000000});
   holes.forEach(p=>
   {
   	let h = new THREE.Mesh (geometry, material);
@@ -552,10 +552,11 @@ function onWindowResize()
     arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
   }
 
-  whRatio = window.innerWidth / window.innerHeight;
+  var whRatio = window.innerWidth / window.innerHeight;
   //whRatio = renderer.domElement.style.width / renderer.domElement.style.height;
-  height = 15;
-  width = height*whRatio;
+  var height = 15;
+  var width = height*whRatio;
+  camera = new THREE.PerspectiveCamera (45,  whRatio, 0.1, 10000);
   cameraHUD = new THREE.OrthographicCamera( -width, width, height, -height, -10, 10 );
   button.position.y = -(height/3*2);
   renderer.setSize (window.innerWidth, window.innerHeight);
