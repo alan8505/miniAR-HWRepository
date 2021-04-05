@@ -565,7 +565,7 @@ function onDocumentTouchStart(event) {
     raycaster.setFromCamera( mouse, cameraHUD );
 
 		var intersects = raycaster.intersectObjects( sceneHUD.children );
-    if (intersects.length>0 && intersects[0]==button){
+    if (intersects.length>0){
       button.material.color.set( 0xff0000 );
       turn = true;
     }
@@ -588,8 +588,6 @@ function onWindowResize()
   button.position.y = -(height/3*2);
   renderer.setSize (window.innerWidth, window.innerHeight);
 }
-
-
 
 </script>
 </body>
