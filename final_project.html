@@ -79,12 +79,14 @@ var shotTimer, shotPower;
 var collisionSound, dropSound;
 var balls = [], holes = [];
 
-var bRadius = 10;  				// puck radius
-var wallDistance = 100;  	// distance from (0,0) to wall
-var wallTHK = 10;
-var groundFriction = 0.5;
+var scale = 0.01;
 
-var scale = 50;
+var bRadius = 10*scale;  				// puck radius
+var wallDistance = 100*scale;  	// distance from (0,0) to wall
+var wallTHK = 10*scale;
+var groundFriction = 0.5*scale;
+
+
 
 
 class Ball{
@@ -93,7 +95,7 @@ class Ball{
   {
   	//this.geometry = new THREE.CylinderGeometry(radius, radius, radius/2, 32);
     this.geometry = new THREE.SphereGeometry( radius, 16, 16 );
-		this.material = new THREE.MeshLambertMaterial();
+		this.material = new THREE.MeshToonMaterial();
     this.material.color = color;
     this.radius = radius;
     this.mass = 1;
@@ -280,8 +282,8 @@ function init() {
   else
   {
     camera = new THREE.PerspectiveCamera (45,  window.innerWidth/window.innerHeight, 0.1, 10000);
-    camera.position.y = 150;
-    camera.position.z = 150;
+    camera.position.y = 150*scale;
+    camera.position.z = 150*scale;
     camera.lookAt (new THREE.Vector3(0,0,0));
   }
   
@@ -403,7 +405,7 @@ function addMarkerHiro(){
   var artoolkitMarker;
   if (arMode){
   	artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
-    	size : scale,
+    	size : 1,
       type : 'pattern',
       patternUrl :  'https://jyunming-chen.github.io/ar.js/data/data/patt.hiro'
     })
@@ -411,7 +413,7 @@ function addMarkerHiro(){
 	
   
   // Create Ball
-  let pos = new THREE.Vector3(0, bRadius, 50);
+  let pos = new THREE.Vector3(0, bRadius, 50*scale);
   let vel = new THREE.Vector3();
   let color = new THREE.Color().setHSL(0, 1, 1);
   let ball = new Ball(pos, vel, color, bRadius);
@@ -420,7 +422,7 @@ function addMarkerHiro(){
   
   for(let i=0; i<4; i++){
   	for(let j=0; j<i+1; j++){
-      let pos = new THREE.Vector3( 0+bRadius*j, bRadius, -15*i);
+      let pos = new THREE.Vector3( -(bRadius*j)+bRadius*j*scale, bRadius, -15*i*scale);
       let vel = new THREE.Vector3(0 ,0 ,0);
       let color = new THREE.Color().setHSL(Math.random(), 1, 0.5);
       let ball = new Ball(pos, vel, color, bRadius);
@@ -432,10 +434,10 @@ function addMarkerHiro(){
   // Create Ground
   var geometry, material;
   geometry = new THREE.BoxGeometry (wallDistance*2, wallTHK, wallDistance*2);
-	material = new THREE.MeshPhongMaterial ({color: 0x00cc66});
+	material = new THREE.MeshToonMaterial ({color: 0x00cc66});
   ground = new THREE.Mesh (geometry, material);
   ground.position.set (0, -(wallTHK/2), 0);
-	//markerRoot.add (ground);
+	markerRoot.add (ground);
   
   // Create Wall
   geometry = new THREE.BoxGeometry (wallTHK, wallTHK*2, (wallDistance+wallTHK)*2);
@@ -467,8 +469,8 @@ function addMarkerHiro(){
   markerRoot.add (pointLight);
   
   // GridHelper
-  var gridHelper = new THREE.GridHelper( 1, 10 );
-	markerRoot.add( gridHelper );
+  //var gridHelper = new THREE.GridHelper( 1, 10 );
+	//markerRoot.add( gridHelper );
 		
 	return markerRoot;
 }
@@ -520,7 +522,7 @@ function onMouseDown() {
     shotTimer = setInterval(function()
     {
     	if (ms>=20) clearInterval(shotTimer);
-      shotPower+=20;
+      shotPower+=20*scale;
       ms++;
     }, 100);
   }
@@ -533,14 +535,23 @@ function onMouseUp() {
   
   // Shot ball
   var vec = new THREE.Vector3();
-  vec.x = markerHiro.position.x;
-  vec.z = markerHiro.position.z;
-  //console.log(markerHiro.position);
+  if (arMode){
+  	vec.x = markerHiro.position.x;
+  	vec.z = markerHiro.position.z;
+  }
+  else{
+  	vec.x = camera.position.x;
+  	vec.z = camera.position.z;
+  }
+  
   vec.normalize().multiplyScalar(shotPower);
   if (turn){
   	turn = !turn;
     clearInterval(shotTimer);
-  	balls[0].vel.sub(vec);
+    if (arMode)
+    	balls[0].vel.add(vec);
+    else
+    	balls[0].vel.sub(vec);
   }
 }
 
@@ -577,6 +588,7 @@ function onWindowResize()
   button.position.y = -(height/3*2);
   renderer.setSize (window.innerWidth, window.innerHeight);
 }
+
 
 
 </script>
