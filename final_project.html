@@ -227,7 +227,7 @@ class Ball{
       	if (itself==balls[0]){
         	point-=20;
         	$('#point').text( "Point: " + point );
-        	balls[0].pos.set(0, bRadius, 50);
+        	balls[0].pos.set(0, bRadius, 50*scale);
           balls[0].vel.set(0, 0, 0);
           return;
         }
