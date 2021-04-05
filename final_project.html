@@ -68,23 +68,23 @@ var turn = false;
 
 var markerSize = 8.3;
 var tableSize = 37.2;
-var radius = tableSize/markerSize/2;
 
 //----Test value----
 var arMode = true;
-var test = true;
 //------------------
 
 var point = 0;
 
 var shotTimer, shotPower;
 var collisionSound, dropSound;
-var balls = [], hole = [];
+var balls = [], holes = [];
 
-var bRadius = 10;  // puck radius
-var wallDistance = 100;  // distance from (0,0) to wall
-var wallTHK = wallDistance/10;
+var bRadius = 10;  				// puck radius
+var wallDistance = 100;  	// distance from (0,0) to wall
+var wallTHK = 10;
 var groundFriction = 0.5;
+
+var scale = 50;
 
 
 class Ball{
@@ -92,7 +92,7 @@ class Ball{
 	constructor(pos, vel, color, radius)
   {
   	//this.geometry = new THREE.CylinderGeometry(radius, radius, radius/2, 32);
-    this.geometry = new THREE.SphereGeometry( radius, 32, 32 );
+    this.geometry = new THREE.SphereGeometry( radius, 16, 16 );
 		this.material = new THREE.MeshLambertMaterial();
     this.material.color = color;
     this.radius = radius;
@@ -208,7 +208,16 @@ class Ball{
   
   holeCollision(){
   	var itself = this;
-    hole.forEach(p=>
+    var pos;
+    let i = 0;
+    balls.forEach(function(item)
+    {
+      if(itself==item)
+        pos = i;
+      i++;
+    });
+    
+    holes.forEach(p=>
     {
     	var d = this.pos.distanceTo( new THREE.Vector3(p[0], bRadius, p[1]) );
       if(d < this.radius)
@@ -224,19 +233,9 @@ class Ball{
         $('#point').text( "Point: " + point );
         dropSound.cloneNode(true).play();
         itself.material.visible = false;
-        var i = 0;
-        balls.forEach(function(item)
-        {
-          if(itself==item){
-          	balls.splice(i,1);
-            return;
-          }
-          i++;
-        });
-        
+        balls.splice(pos,1);
       }
     });
-    
   }
   
 }
@@ -273,19 +272,17 @@ function init() {
   sceneHUD	= new THREE.Scene();
 	
 	// Create a BASIC camera
-  if (arMode){
+  if (arMode)
+  {
   	camera = new THREE.Camera();
 		scene.add(camera);
   }
-  else{
+  else
+  {
     camera = new THREE.PerspectiveCamera (45,  window.innerWidth/window.innerHeight, 0.1, 10000);
     camera.position.y = 150;
     camera.position.z = 150;
     camera.lookAt (new THREE.Vector3(0,0,0));
-    // Light
-    var pointLight = new THREE.PointLight (0xffffff);
-    pointLight.position.set (0,300,200);
-    scene.add (pointLight);
   }
   
   // Create Sound
@@ -295,12 +292,13 @@ function init() {
   // Create hole
   let w = wallDistance;
   let r = bRadius;
-  hole = [ [w-r, w-r], [-w+r, w-r], [w-r, -w+r], [-w+r, -w+r] ];
+  holes = [ [w-r, w-r], [-w+r, w-r], [w-r, -w+r], [-w+r, -w+r] ];
   
   // Create HUD button
-  whRatio = window.innerWidth / window.innerHeight;
-  height = 15;
-  width = height*whRatio;
+  let whRatio = window.innerWidth / window.innerHeight;
+  let height = 15;
+  let width = height*whRatio;
+  let radius = 2.3;
   cameraHUD = new THREE.OrthographicCamera( -width, width, height, -height, -10, 10 );
   var geometry, material;
   geometry = new THREE.CircleGeometry( radius, 32);
@@ -361,6 +359,10 @@ function init() {
   markerHiro = addMarkerHiro();
   scene.add (markerHiro);
   
+  // GridHelper
+  //var gridHelper = new THREE.GridHelper( 1, 10 );
+	//scene.add( gridHelper );
+  
   
   $('#device').text ( navigator.platform );
 
@@ -379,6 +381,8 @@ function init() {
     document.addEventListener('touchend', onMouseUp, false);
   }
   
+  /*
+  // Test mode keyboard control
   document.onkeydown = keyFunction;
   function keyFunction(event){
   	console.log(event.keyCode);
@@ -388,16 +392,18 @@ function init() {
   		camera.position.add( new THREE.Vector3(-5, 0, 0) );
     camera.lookAt( new THREE.Vector3(0, 0, 0) );
   }
+  */
   
 }
 
 	
 function addMarkerHiro(){
-	let markerRoot = new THREE.Group();
-  markerRoot.scale = new THREE.Vector3(0.1, 0.1, 0.1);
+	var markerRoot = new THREE.Group();
+  //markerRoot.scale.set(scale, scale, scale);
   var artoolkitMarker;
   if (arMode){
   	artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+    	size : scale,
       type : 'pattern',
       patternUrl :  'https://jyunming-chen.github.io/ar.js/data/data/patt.hiro'
     })
@@ -429,7 +435,7 @@ function addMarkerHiro(){
 	material = new THREE.MeshPhongMaterial ({color: 0x00cc66});
   ground = new THREE.Mesh (geometry, material);
   ground.position.set (0, -(wallTHK/2), 0);
-	markerRoot.add (ground);
+	//markerRoot.add (ground);
   
   // Create Wall
   geometry = new THREE.BoxGeometry (wallTHK, wallTHK*2, (wallDistance+wallTHK)*2);
@@ -447,17 +453,22 @@ function addMarkerHiro(){
   // Cteate Hole
   geometry = new THREE.CircleGeometry(bRadius, 32);
 	material = new THREE.MeshLambertMaterial({color: 0x000000});
-  hole.forEach(p=>
+  holes.forEach(p=>
   {
   	let h = new THREE.Mesh (geometry, material);
     h.rotation.x = -(Math.PI/2);
-    h.position.set(p[0], 0.001, p[1]);
+    h.position.set(p[0], 0.01, p[1]);
     markerRoot.add(h);
   });
   
+  // Create Light
+  var pointLight = new THREE.PointLight (0xffffff);
+  pointLight.position.set (0,300,200);
+  markerRoot.add (pointLight);
+  
   // GridHelper
-  //const gridHelper = new THREE.GridHelper( 1, 10 );
-	//markerRoot.add( gridHelper );
+  var gridHelper = new THREE.GridHelper( 1, 10 );
+	markerRoot.add( gridHelper );
 		
 	return markerRoot;
 }
@@ -522,8 +533,9 @@ function onMouseUp() {
   
   // Shot ball
   var vec = new THREE.Vector3();
-  vec.x = camera.position.x;
-  vec.z = camera.position.z;
+  vec.x = markerHiro.position.x;
+  vec.z = markerHiro.position.z;
+  //console.log(markerHiro.position);
   vec.normalize().multiplyScalar(shotPower);
   if (turn){
   	turn = !turn;
@@ -543,7 +555,7 @@ function onDocumentTouchStart(event) {
 
 		var intersects = raycaster.intersectObjects( sceneHUD.children );
     if (intersects.length>0 && intersects[0]==button){
-      button.object.material.color.set( 0xff0000 );
+      button.material.color.set( 0xff0000 );
       turn = true;
     }
   }
@@ -565,6 +577,7 @@ function onWindowResize()
   button.position.y = -(height/3*2);
   renderer.setSize (window.innerWidth, window.innerHeight);
 }
+
 
 </script>
 </body>
