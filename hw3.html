@@ -332,6 +332,7 @@ function onWindowResize()
   whRatio = window.innerWidth / window.innerHeight;
   height = 15;
   width = height*whRatio;
+  camera = new THREE.PerspectiveCamera (45,  whRatio, 0.1, 10000);
   cameraHUD = new THREE.OrthographicCamera( -width, width, height, -height, -10, 10 );
   button.position.y = -(height/3*2);
   renderer.setSize (window.innerWidth, window.innerHeight);
