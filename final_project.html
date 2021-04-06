@@ -64,7 +64,6 @@ var renderer, scene, sceneHUD, camera, cameraHUD;
 var clock, stats, raycaster, mouse, loader;
 var arToolKitSource, arToolKitContext, markerHiro;
 var button;
-var turn = false;
 
 var markerSize = 8.3;
 var tableSize = 37.2;
@@ -76,8 +75,9 @@ var arMode = true;
 var point = 0;
 
 var shotTimer, shotPower;
+var isShot = false;
 var collisionSound, dropSound;
-var balls = [], holes = [];
+var balls = [], holes = [], stick;
 
 var scale = 0.01;
 
@@ -269,11 +269,11 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	// init scene and camera
+	// init scene
 	scene	= new THREE.Scene();
   sceneHUD	= new THREE.Scene();
 	
-	// Create a BASIC camera
+	// Create Camera
   if (arMode)
   {
   	camera = new THREE.Camera();
@@ -318,10 +318,7 @@ function init() {
   button.position.y = -(height/3*2);
   sceneHUD.add(button);
 
-	////////////////////////////////////////////////////////////////////////////////
-	//          handle arToolkitSource
-	////////////////////////////////////////////////////////////////////////////////
-	
+	// handle arToolkitSource
   if (arMode){
   	arToolkitSource = new THREEx.ArToolkitSource({
       // to read from the webcam 
@@ -337,11 +334,7 @@ function init() {
       onWindowResize();
     })
     
-    
-    ////////////////////////////////////////////////////////////////////////////////
-    //          initialize arToolkitContext
-    ////////////////////////////////////////////////////////////////////////////////
-    
+    // initialize arToolkitContext
     arToolkitContext = new THREEx.ArToolkitContext({
       cameraParametersUrl: 'https://jyunming-chen.github.io/ar.js/data/data/camera_para.dat',
       detectionMode: 'mono',
@@ -398,7 +391,7 @@ function init() {
   
 }
 
-	
+
 function addMarkerHiro(){
 	var markerRoot = new THREE.Group();
   //markerRoot.scale.set(scale, scale, scale);
@@ -440,15 +433,15 @@ function addMarkerHiro(){
 	markerRoot.add (ground);
   
   // Create Wall
-  geometry = new THREE.BoxGeometry (wallTHK, wallTHK*2, (wallDistance+wallTHK)*2);
+  geometry = new THREE.BoxGeometry (wallTHK, bRadius*2, (wallDistance+wallTHK)*2);
 	material = new THREE.MeshToonMaterial ({color: 0x663300});
   var wall = new Array(4);
   for(let i=0;i<4;i++)	wall[i] = new THREE.Mesh (geometry, material);
-  wall[0].position.set (wallDistance+wallTHK/2, wallTHK, 0);
-  wall[1].position.set (-(wallDistance+wallTHK/2), wallTHK, 0);
-  wall[2].position.set (0, wallTHK, wallDistance+wallTHK/2);
+  wall[0].position.set (wallDistance+wallTHK/2, bRadius, 0);
+  wall[1].position.set (-(wallDistance+wallTHK/2), bRadius, 0);
+  wall[2].position.set (0, bRadius, wallDistance+wallTHK/2);
   wall[2].rotation.y = Math.PI/2;
-  wall[3].position.set (0, wallTHK, -(wallDistance+wallTHK/2));
+  wall[3].position.set (0, bRadius, -(wallDistance+wallTHK/2));
   wall[3].rotation.y = Math.PI/2;
   for(let i=0;i<4;i++)	markerRoot.add (wall[i]);
   
@@ -462,6 +455,17 @@ function addMarkerHiro(){
     h.position.set(p[0], 0.01, p[1]);
     markerRoot.add(h);
   });
+  
+  // Cteate Stick
+  geometry = new THREE.CylinderGeometry(bRadius/2, bRadius/2.5, bRadius*20, 16);
+	material = new THREE.MeshToonMaterial({color: 0x663300});
+  stick = new THREE.Object3D();
+  stick.add( new THREE.Mesh (geometry, material) );
+  stick.children[0].position.set(0, balls[0].pos.y, bRadius*12);
+  stick.children[0].rotation.x = Math.PI/2;
+  stick.position.set(0, 0, balls[0].pos.z);
+  stick.rotation.x = -Math.PI/10;
+  markerRoot.add(stick);
   
   // Create Light
   var pointLight = new THREE.PointLight (0xffffff);
@@ -494,6 +498,9 @@ function animate() {
   	ball.update(dt);
   });
   
+  stick.position.set(balls[0].pos.x, 0, balls[0].pos.z);
+  stick.rotation.y = Math.PI+markerHiro.rotation.y;
+  
   //renderer.clear();
 	renderer.render (scene, camera);
   renderer.render (sceneHUD, cameraHUD);
@@ -514,7 +521,6 @@ function onMouseDown() {
 	if (intersects.length>0 && intersects[0].object==button)
   {
   	button.material.color.set( 0xff0000 );
-    turn = true;
     increaseShotPower();
   }
 }
@@ -538,7 +544,6 @@ function onDocumentTouchStart(event) {
 		var intersects = raycaster.intersectObjects( sceneHUD.children );
     if (intersects.length>0){
       button.material.color.set( 0xff0000 );
-      turn = true;
       increaseShotPower();
     }
   }
@@ -566,29 +571,40 @@ function increaseShotPower()
 {
   shotPower = 0;
   var ms= 0;
-  shotTimer = setInterval(function()
+  if (!isShot)
   {
-    if (ms>=20) clearInterval(shotTimer);
-    shotPower+=20*scale;
-    ms++;
-  }, 100);
+  	isShot = true;
+  	shotTimer = setInterval(function()
+    {
+      if (ms>=20) clearInterval(shotTimer);
+      shotPower+=20*scale;
+      ms++;
+    }, 100);
+
+    setTimeout(function()
+    {
+      stick.visible = true;
+      isShot = false;
+    }, 6000);
+  }
 }
 
 function shotBall()
 {
 	var vec = new THREE.Vector3();
   if (arMode){
-  	vec.x = markerHiro.position.x;
-  	vec.z = markerHiro.position.z;
+  	vec.x = Math.sin( markerHiro.rotation.y );
+  	vec.z = -Math.cos( markerHiro.rotation.y );
+    //console.log(vec);
   }
   else{
   	vec.x = camera.position.x;
   	vec.z = camera.position.z;
   }
-  
   vec.normalize().multiplyScalar(shotPower);
-  if (turn){
-  	turn = !turn;
+  //console.log(vec);
+  if (isShot){
+    stick.visible = false;
     clearInterval(shotTimer);
     if (arMode)
     	balls[0].vel.add(vec);
@@ -596,6 +612,7 @@ function shotBall()
     	balls[0].vel.sub(vec);
   }
 }
+
 
 </script>
 </body>
