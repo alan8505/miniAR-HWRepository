@@ -439,10 +439,10 @@ function addMarkerHiro()
   
   // Create Ground
   var geometry, material;
-  geometry = new THREE.BoxGeometry (wallDistance*2, wallTHK, wallDistance*2);
+  geometry = new THREE.PlaneGeometry (wallDistance*2, wallDistance*2);
 	material = new THREE.MeshToonMaterial ({color: 0x00cc66});
   ground = new THREE.Mesh (geometry, material);
-  ground.position.set (0, -(wallTHK/2), 0);
+  ground.rotation.x = -Math.PI/2;
 	markerRoot.add (ground);
   
   // Create Wall
@@ -512,7 +512,9 @@ function animate()
   	ball.update(dt);
   });
   
-  stick.rotation.y = arMode? markerHiro.rotation.y : camera.rotation.y;
+  stick.rotation.y = arMode? -markerHiro.rotation.y : camera.rotation.y;
+  
+  //stick.rotation.y = -getAngle( new THREE.Vector2(markerHiro.position.x, markerHiro.position.z) );
 	
   //console.log(markerHiro.rotation.y);
   
@@ -599,8 +601,8 @@ function increaseShotPower()
     {
       if (ms>=20) clearInterval(shotTimer);
       shotPower+=20*scale;
-      stick.children[0].position.z += 2*scale;
-      stick.children[0].position.y += 0.9*scale;
+      stick.children[0].position.z += Math.sin(Math.PI/2.6)*2*scale;
+      stick.children[0].position.y += Math.cos(Math.PI/2.6)*2*scale;
       ms++;
     }, 100);
   }
@@ -637,6 +639,12 @@ function shotBall()
       }
     }, 100);
   }
+}
+
+function getAngle(a)
+{
+    var angle = Math.acos(-a.y / a.distanceTo( new THREE.Vector2(0, 0) )) * Math.PI;
+    return (a.x < 0 ? -angle : angle);
 }
 
 
