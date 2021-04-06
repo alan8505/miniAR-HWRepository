@@ -72,7 +72,7 @@ var tableSize = 37.2;
 var arMode = true;
 //------------------
 
-var point = 0;
+var score = 0;
 
 var shotTimer, shotPower;
 var isShot = false;
@@ -81,7 +81,7 @@ var balls = [], holes = [], stick;
 
 var scale = 0.01;
 
-var bRadius = 10*scale;  				// puck radius
+var bRadius = 10*scale;  				// ball radius
 var wallDistance = 100*scale;  	// distance from (0,0) to wall
 var wallTHK = 10*scale;
 var groundFriction = 0.5*scale;
@@ -89,8 +89,8 @@ var groundFriction = 0.5*scale;
 
 
 
-class Ball{
-
+class Ball
+{
 	constructor(pos, vel, color, radius)
   {
   	//this.geometry = new THREE.CylinderGeometry(radius, radius, radius/2, 32);
@@ -208,7 +208,8 @@ class Ball{
   	});
   }
   
-  holeCollision(){
+  holeCollision()
+  {
   	var itself = this;
     var pos;
     let i = 0;
@@ -225,14 +226,14 @@ class Ball{
       if(d < this.radius)
       {
       	if (itself==balls[0]){
-        	point-=20;
-        	$('#point').text( "Point: " + point );
+        	score-=20;
+        	$('#score').text( "Score: " + score );
         	balls[0].pos.set(0, bRadius, 50*scale);
           balls[0].vel.set(0, 0, 0);
           return;
         }
-        point+=10;
-        $('#point').text( "Point: " + point );
+        score+=10;
+        $('#score').text( "Score: " + score );
         dropSound.cloneNode(true).play();
         itself.material.visible = false;
         balls.splice(pos,1);
@@ -247,8 +248,8 @@ animate();
 
 //return;
 
-function init() {
-
+function init()
+{
 	// init renderer
 	renderer = new THREE.WebGLRenderer({
 		alpha: true
@@ -319,31 +320,37 @@ function init() {
   sceneHUD.add(button);
 
 	// handle arToolkitSource
-  if (arMode){
-  	arToolkitSource = new THREEx.ArToolkitSource({
+  if (arMode)
+  {
+  	arToolkitSource = new THREEx.ArToolkitSource(
+    {
       // to read from the webcam 
       sourceType : 'webcam',
-    })
+    });
 
-    arToolkitSource.init(function onReady(){
+    arToolkitSource.init(function onReady()
+    {
       onWindowResize();
     })
 
     // handle resize
-    window.addEventListener('resize', function(){
+    window.addEventListener('resize', function()
+    {
       onWindowResize();
-    })
+    });
     
     // initialize arToolkitContext
-    arToolkitContext = new THREEx.ArToolkitContext({
+    arToolkitContext = new THREEx.ArToolkitContext(
+    {
       cameraParametersUrl: 'https://jyunming-chen.github.io/ar.js/data/data/camera_para.dat',
       detectionMode: 'mono',
       maxDetectionRate: 30,
       canvasWidth: 80*3,
       canvasHeight: 60*3,
-    })
+    });
     // initialize it
-    arToolkitContext.init(function onCompleted(){
+    arToolkitContext.init(function onCompleted()
+    {
       // copy projection matrix to camera
       camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
     })
@@ -361,7 +368,8 @@ function init() {
   
   $('#device').text ( navigator.platform );
 
-  if( !!navigator.platform.match(/Win32|MacIntel/) ) {
+  if( !!navigator.platform.match(/Win32|MacIntel/) )
+  {
     // mousemove
     window.addEventListener( 'mousemove', onMouseMove, false );
     window.addEventListener( 'mousedown', onMouseDown, false );
@@ -369,7 +377,8 @@ function init() {
     document.addEventListener('touchstart', onDocumentTouchStart, false);
     document.addEventListener('touchend', onMouseUp, false);
   }
-  else {
+  else
+  {
   	// for those with touch screen
     //document.addEventListener('touchmove', onDocumentTouchStart, false);
     document.addEventListener('touchstart', onDocumentTouchStart, false);
@@ -392,11 +401,13 @@ function init() {
 }
 
 
-function addMarkerHiro(){
+function addMarkerHiro()
+{
 	var markerRoot = new THREE.Group();
   //markerRoot.scale.set(scale, scale, scale);
   var artoolkitMarker;
-  if (arMode){
+  if (arMode)
+  {
   	artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
     	size : 1,
       type : 'pattern',
@@ -413,8 +424,10 @@ function addMarkerHiro(){
   markerRoot.add (ball.mesh);
   balls.push(ball);
   
-  for(let i=0; i<4; i++){
-  	for(let j=0; j<i+1; j++){
+  for(let i=0; i<4; i++)
+  {
+  	for(let j=0; j<i+1; j++)
+    {
       let pos = new THREE.Vector3( -(bRadius*j)+bRadius*j*scale, bRadius, -15*i*scale);
       let vel = new THREE.Vector3(0 ,0 ,0);
       let color = new THREE.Color().setHSL(Math.random(), 1, 0.5);
@@ -461,10 +474,9 @@ function addMarkerHiro(){
 	material = new THREE.MeshToonMaterial({color: 0x663300});
   stick = new THREE.Object3D();
   stick.add( new THREE.Mesh (geometry, material) );
-  stick.children[0].position.set(0, balls[0].pos.y, bRadius*11);
-  stick.children[0].rotation.x = Math.PI/2;
+  stick.children[0].position.set(0, bRadius*5, bRadius*11);
+  stick.children[0].rotation.x = Math.PI/2.6;
   stick.position.set(0, 0, balls[0].pos.z);
-  stick.rotation.x = Math.PI/1.1;
   markerRoot.add(stick);
   
   // Create Light
@@ -481,11 +493,13 @@ function addMarkerHiro(){
 
 var speed = 60;
 
-function animate() {
+function animate()
+{
 	requestAnimationFrame (animate);
 	stats.update();
   
-  if (arMode){
+  if (arMode)
+  {
   	if( arToolkitSource.ready === false )	return
   	arToolkitContext.update( arToolkitSource.domElement );
     //raycaster.ray.origin.set (0,0,0);
@@ -498,8 +512,9 @@ function animate() {
   	ball.update(dt);
   });
   
-  stick.position.set(balls[0].pos.x, 0, balls[0].pos.z);
-  stick.rotation.y = Math.PI+markerHiro.rotation.y;
+  stick.rotation.y = arMode? markerHiro.rotation.y : camera.rotation.y;
+	
+  //console.log(markerHiro.rotation.y);
   
   //renderer.clear();
 	renderer.render (scene, camera);
@@ -507,13 +522,14 @@ function animate() {
 }
 
 // Mouse Event
-
-function onMouseMove( event ) {
+function onMouseMove( event )
+{
 	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 }
 
-function onMouseDown() {
+function onMouseDown()
+{
 	//console.log("mouseDown");
   raycaster.setFromCamera( mouse, cameraHUD );
   var intersects = raycaster.intersectObjects( sceneHUD.children );
@@ -525,7 +541,8 @@ function onMouseDown() {
   }
 }
 
-function onMouseUp() {
+function onMouseUp()
+{
 	//console.log("mouseUp");
   button.material.color.set( new THREE.Color("rgb(255,255,255)") );
   
@@ -533,9 +550,10 @@ function onMouseUp() {
 }
 
 // Touch Event
-
-function onDocumentTouchStart(event) {
-  if (event.touches.length == 1) {    
+function onDocumentTouchStart(event)
+{
+  if (event.touches.length == 1)
+  {    
     //event.preventDefault();
     mouse.x = ( event.touches[0].pageX / window.innerWidth ) * 2 - 1;
     mouse.y = - ( event.touches[0].pageY / window.innerHeight ) * 2 + 1;
@@ -551,10 +569,13 @@ function onDocumentTouchStart(event) {
 
 function onWindowResize()
 {
-	arToolkitSource.onResizeElement();
-  //arToolkitSource.copyElementSizeTo(renderer.domElement);
-  if( arToolkitContext.arController !== null ){
-    arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+	if (arMode)
+  {
+    arToolkitSource.onResizeElement();
+    //arToolkitSource.copyElementSizeTo(renderer.domElement);
+    if( arToolkitContext.arController !== null ){
+      arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+    }
   }
 
   var whRatio = window.innerWidth / window.innerHeight;
@@ -578,40 +599,46 @@ function increaseShotPower()
     {
       if (ms>=20) clearInterval(shotTimer);
       shotPower+=20*scale;
+      stick.children[0].position.z += 2*scale;
+      stick.children[0].position.y += 0.9*scale;
       ms++;
     }, 100);
-
-    setTimeout(function()
-    {
-      stick.visible = true;
-      isShot = false;
-    }, 6000);
   }
 }
 
 function shotBall()
 {
-	var vec = new THREE.Vector3();
-  if (arMode){
-  	vec.x = Math.sin( markerHiro.rotation.y );
-  	vec.z = -Math.cos( markerHiro.rotation.y );
-    //console.log(vec);
-  }
-  else{
-  	vec.x = camera.position.x;
-  	vec.z = camera.position.z;
-  }
-  vec.normalize().multiplyScalar(shotPower);
-  //console.log(vec);
-  if (isShot){
+  if (isShot)
+  {
+  	var vec = new THREE.Vector3();
+    vec.x = arMode?  Math.sin( markerHiro.rotation.y ) : camera.position.x;
+    vec.z = arMode? -Math.cos( markerHiro.rotation.y ) : camera.position.z;
+  	vec.normalize().multiplyScalar(shotPower);
+    stick.children[0].position.z = bRadius*11;
+    stick.children[0].position.y = bRadius*5
     stick.visible = false;
     clearInterval(shotTimer);
     if (arMode)
     	balls[0].vel.add(vec);
     else
     	balls[0].vel.sub(vec);
+    var timer = setInterval(function()
+    {
+    	let i = 0;
+      balls.forEach(ball=>{
+      	if ( ball.vel.distanceTo( new THREE.Vector3() )>0 )
+        	i++;
+      });
+      if (i==0){
+      	clearInterval(timer);
+        stick.position.set(balls[0].pos.x, 0, balls[0].pos.z);
+        stick.visible = true;
+        isShot = false;
+      }
+    }, 100);
   }
 }
+
 
 </script>
 </body>
