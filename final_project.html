@@ -461,10 +461,10 @@ function addMarkerHiro(){
 	material = new THREE.MeshToonMaterial({color: 0x663300});
   stick = new THREE.Object3D();
   stick.add( new THREE.Mesh (geometry, material) );
-  stick.children[0].position.set(0, balls[0].pos.y, bRadius*12);
+  stick.children[0].position.set(0, balls[0].pos.y, bRadius*11);
   stick.children[0].rotation.x = Math.PI/2;
   stick.position.set(0, 0, balls[0].pos.z);
-  stick.rotation.x = -Math.PI/10;
+  stick.rotation.x = Math.PI/1.1;
   markerRoot.add(stick);
   
   // Create Light
@@ -612,7 +612,6 @@ function shotBall()
     	balls[0].vel.sub(vec);
   }
 }
-
 
 </script>
 </body>
