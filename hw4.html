@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<head>
+<script src="https://threejs.org/examples/js/libs/stats.min.js"></script>
+<script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+</head>
+
+<body>
+<script>
+import * as THREE from "https://threejs.org/build/three.module.js";
+import Stats from "https://threejs.org/examples/jsm/libs/stats.module.js";
+import { OrbitControls } from "https://threejs.org/examples/jsm/controls/OrbitControls.js";
+import { Gyroscope } from "https://threejs.org/examples/jsm/misc/Gyroscope.js";
+
+var renderer, scene, clock, stats;
+var controls, keyboard;
+
+var mainCamera, camera;
+var target;
+
+
+class Cannonball {
+
+	constructor(barrel, force, direct) {
+  
+  	let geo = new THREE.CylinderGeometry(.52,2,5,20)
+    let mat = new THREE.MeshNormalMaterial()
+  	this.main = new THREE.Mesh(geo, mat);
+    this.main.rotation.y = direct;
+    scene.add(this.main);
+    
+    const SPEED = 25;
+    this.vel = barrel.localToWorld(new THREE.Vector3(0,20,0)).sub(
+    barrel.localToWorld(new THREE.Vector3(0,0,0))).setLength(SPEED);
+    this.pos = barrel.localToWorld(new THREE.Vector3(0,22,0));
+    this.force = force;
+  
+  }
+  
+  update(dt) {
+  
+    // Euler's method
+    this.vel.add(this.force.clone().multiplyScalar(dt));
+    let prePos = this.pos.clone();
+    this.pos.add(this.vel.clone().multiplyScalar(dt));
+    this.main.position.copy(this.pos);
+    this.main.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), this.pos.clone().sub(prePos).normalize());
+  
+  }
+
+}
+
+
+class Cannon {
+
+	constructor() {
+  
+  	this.main = new THREE.Group();
+    this.barrelPart = new THREE.Group();
+    
+    let geo, mat;
+    geo = new THREE.SphereGeometry(10, 20, 20, Math.PI+Math.PI*0.1, Math.PI*1.8,0, Math.PI/2);
+    mat = new THREE.MeshNormalMaterial();
+    let body = new THREE.Mesh(geo, mat);
+    this.main.add(body);
+    
+    geo = new THREE.CylinderGeometry(2, 2, 20, 18);
+    mat = new THREE.MeshNormalMaterial();
+    let barrel = new THREE.Mesh(geo, mat);
+    barrel.position.y = 10;
+    this.barrelPart.add(barrel);
+    this.barrelPart.rotation.z = -Math.PI/3;
+    this.main.add(this.barrelPart);
+    
+    this.force = new THREE.Vector3(0, -10, 0);
+    this.isShooting = false;
+    
+  }
+  
+  update(dt) {
+  	
+    // shooting control
+    if (keyboard.down('space')) {
+
+      if (!this.isShooting) {
+
+        this.isShooting = true;
+        this.cannonball = new Cannonball(this.barrelPart, this.force, this.main.rotation.y);
+
+      }
+
+    }
+    
+    if (this.isShooting) {
+    
+    	this.cannonball.update(dt);
+      if (this.cannonball.pos.y < 0) {
+      
+        scene.remove(this.cannonball.main);
+        this.isShooting = false;
+        
+      }
+      
+    }
+
+    // Turning control
+    if (keyboard.pressed('left')) {
+      this.main.rotation.y += 0.05;
+    }
+    
+    if (keyboard.pressed('right')) {
+      this.main.rotation.y -= 0.05;
+    }
+    
+    if (keyboard.pressed('up') && this.barrelPart.rotation.z<-0.1) {
+      this.barrelPart.rotation.z += 0.05;
+    }
+    
+    if (keyboard.pressed('down') && this.barrelPart.rotation.z>=-Math.PI/2.2) {
+      this.barrelPart.rotation.z -= 0.05;
+    }
+    
+    this.drawLine();
+    
+  }
+  
+  drawLine() {
+  	
+    let points = [];
+    const SPEED = 25;
+    let vel = this.barrelPart.localToWorld(new THREE.Vector3(0,20,0)).sub(
+    this.barrelPart.localToWorld(new THREE.Vector3(0,0,0))).setLength(SPEED);
+    let pos = this.barrelPart.localToWorld(new THREE.Vector3(0,22,0));
+  	for (let i = 0; pos.y>0; i++) {
+  
+  		points.push(pos.clone());
+      vel.add(this.force.clone().multiplyScalar(0.05));
+      pos.add(vel.clone().multiplyScalar(0.05));
+
+    }
+
+    let geometry = new THREE.BufferGeometry().setFromPoints(points);
+    let parabola = new THREE.Line(geometry, new THREE.LineDashedMaterial({color:'cyan'}));
+    parabola.computeLineDistances();
+    scene.remove(this.parabola);
+    this.parabola = parabola;
+		scene.add(this.parabola);
+    
+  }
+  
+}
+
+init();
+animate();
+
+function init() {
+
+  // Renderer & Scene
+	renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x1f1f1f);
+  renderer.domElement.id = "renderer";
+  renderer.domElement.style.position = "absolute";
+  renderer.domElement.style.top = 0;
+  renderer.domElement.style.left = 0;
+	document.body.appendChild (renderer.domElement);
+  scene = new THREE.Scene();
+  clock = new THREE.Clock();
+  keyboard = new KeyboardState();
+
+	// Stats
+	stats = new Stats();
+	document.body.appendChild( stats.domElement );
+  
+  // Camera
+  let ratio = window.innerWidth / window.innerHeight;
+	camera = new THREE.PerspectiveCamera (45, ratio, 0.1, 10000);
+	camera.position.y = 100;
+	camera.position.z = 150;
+	camera.lookAt ( new THREE.Vector3(0, 0, 0) );
+  mainCamera = camera;
+  
+  // OrbitControls
+  controls = new OrbitControls( camera, renderer.domElement );
+  controls.target =  new THREE.Vector3(0, 25, 0);
+  controls.update();
+  
+  // GridHelper
+  var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+	scene.add(gridXZ);
+  
+  // Listener
+  window.addEventListener('resize', onWindowResize, false);
+  
+  // Light
+  var pointLight = new THREE.PointLight(0xffffff);
+	pointLight.position.set (0,300,200);
+	scene.add (pointLight);
+
+  // Create cannon
+  target = new Cannon();
+  scene.add(target.main);
+  
+  // Gyro
+  var gyro = new Gyroscope();
+  target.main.add(gyro);
+  gyro.add(camera);
+  
+  
+}
+
+function animate() {
+
+	var dt = clock.getDelta();
+
+	requestAnimationFrame( animate );
+  controls.update();
+	stats.update();
+  keyboard.update();
+
+  target.update(dt);
+  mainCamera.lookAt( target.main.position );
+  
+	renderer.render (scene, mainCamera);
+  
+}
+
+function onWindowResize() {
+
+	mainCamera.aspect = window.innerWidth / window.innerHeight;
+	mainCamera.updateProjectionMatrix();
+	renderer.setSize(window.innerWidth, window.innerHeight);
+  
+}
+</script>
+</body>
