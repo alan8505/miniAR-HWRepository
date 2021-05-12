@@ -78,7 +78,7 @@ class Cannon {
         geo = new THREE.SphereGeometry(1, 20, 20, Math.PI+Math.PI*0.1, Math.PI*1.8,0, Math.PI/2);
         mat = new THREE.MeshNormalMaterial();
         let body = new THREE.Mesh(geo, mat);
-        body.rotation.y = -Math.PI/2;
+        //body.rotation.y = -Math.PI/2;
         this.main.add(body);
         
         geo = new THREE.CylinderGeometry(0.2, 0.2, 2, 18);
@@ -87,7 +87,7 @@ class Cannon {
         barrel.position.y = 1;
         this.barrelPart.add(barrel);
         this.barrelPart.rotation.z = -Math.PI/3;
-        this.barrelPart.rotation.y = -Math.PI/2;
+        //this.barrelPart.rotation.y = -Math.PI/2;
         this.main.add(this.barrelPart);
         
     }
@@ -408,6 +408,11 @@ function animate() {
     if (keyboard.pressed('J')) markerKanji.position.x -= 0.05;
     if (keyboard.pressed('K')) markerKanji.position.z += 0.05;
     if (keyboard.pressed('L')) markerKanji.position.x += 0.05;
+
+    if (keyboard.pressed('1')) markerKanji.position.set(5, 0, 5);
+    if (keyboard.pressed('2')) markerKanji.position.set(-5, 0, 5);
+    if (keyboard.pressed('3')) markerKanji.position.set(-5, 0, -5);
+    if (keyboard.pressed('4')) markerKanji.position.set(5, 0, -5);
 	
     renderer.clear();
 	renderer.render(scene, camera);
@@ -496,7 +501,7 @@ function addMarkerHiro() {
     
     // Create cannon
     cannon = new Cannon();
-    cannon.main.rotation.y = -Math.PI;
+    //cannon.main.rotation.y = -Math.PI;
     markerRoot.add(cannon.main);
     
     
@@ -563,16 +568,19 @@ function createHUDButton() {
 function targetTracking() {
 
 	var relativePos = markerHiro.position.clone().sub(markerKanji.position);
-    if ( markerKanji.position.distanceTo(kanjiPrePos) > 0.1 ) {
+    if ( markerKanji.position.distanceTo(kanjiPrePos) > 0.5 ) {
     
         q1.copy(q2);  // save current (old) orientation
-        q2.setFromUnitVectors(new THREE.Vector3(0, 0, 1), markerKanji.position.clone().normalize());  // compute new oriention
+        q2.setFromUnitVectors(new THREE.Vector3(1, 0, 0), markerKanji.position.clone().normalize());  // compute new oriention
 
         N = 100;
         counter = 0;
         kanjiPrePos.copy(markerKanji.position);
             
     }
+
+    //cannon.main.lookAt(markerKanji.position);
+    var deviation = cannon.aimPos.clone().sub(markerKanji.position);
     
     if (counter <= N) {
         let alpha = counter / N;
@@ -581,12 +589,8 @@ function targetTracking() {
         cannon.main.quaternion.copy(qm);
         ++counter;
     }
-    
-    //cannon.main.lookAt(markerKanji.position);
-    var deviation = cannon.aimPos.clone().sub(markerKanji.position);
-    
-    if ( deviation.length() > 0.5 ) {
-    
+    else if ( deviation.length() > 0.5 ) {
+
         if (relativePos.x < 0 && relativePos.z < 0) {
         
             if ( (deviation.x > 0 || deviation.z > 0) && cannon.barrelPart.rotation.z < -0.1 ) {
@@ -595,7 +599,7 @@ function targetTracking() {
             else if (cannon.barrelPart.rotation.z > -Math.PI/2.2){
                 cannon.barrelPart.rotation.z -= 0.025;
             }
-            
+        
         }
         else if (relativePos.x > 0 && relativePos.z < 0) {
         
