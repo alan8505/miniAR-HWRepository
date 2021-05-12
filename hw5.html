@@ -43,7 +43,7 @@ class Cannonball {
         let mat = new THREE.MeshPhongMaterial();
         this.main = new THREE.Mesh(geo, mat);
         this.main.rotation.y = direct;
-        scene.add(this.main);
+        markerHiro.add(this.main);
     
     }
   
@@ -102,13 +102,15 @@ class Cannon {
             this.cannonball.update(dt);
             if (this.cannonball.pos.y < 0) {
             
-                var distance = this.cannonball.pos.distanceTo(markerKanji.position);
-                if (distance <= 2) {
+                var vec = this.cannonball.main.worldToLocal( markerKanji.localToWorld( new THREE.Vector3() ) );
+                var distance = vec.length();
+                console.log(distance);
+                if (distance <= 1.5) {
                     markerKanji.children[2].visible = false;
                     sprite.play();
                 }
             
-                scene.remove(this.cannonball.main);
+                markerHiro.remove(this.cannonball.main);
                 this.isShooting = false;
                 
             }
@@ -124,11 +126,11 @@ class Cannon {
             this.main.rotation.y -= 0.05;
         }
         
-        if (keyboard.pressed('up') && this.barrelPart.rotation.z<-0.1) {
+        if (keyboard.pressed('up') && this.barrelPart.rotation.z < -Math.PI/15) {
             this.barrelPart.rotation.z += 0.05;
         }
         
-        if (keyboard.pressed('down') && this.barrelPart.rotation.z>-Math.PI/2.2) {
+        if (keyboard.pressed('down') && this.barrelPart.rotation.z > -Math.PI/4) {
             this.barrelPart.rotation.z -= 0.05;
         }
         
@@ -351,23 +353,6 @@ function init() {
     q1 = new THREE.Quaternion();
     q2 = new THREE.Quaternion();
     kanjiPrePos =  new THREE.Vector3();
-
-    /*
-    if( !!navigator.platform.match(/Win32|MacIntel/) ) {
-        // mousemove
-        window.addEventListener( 'mousemove', onMouseMove, false );
-        window.addEventListener( 'mousedown', onMouseDown, false );
-        window.addEventListener( 'mouseup', onMouseUp, false );
-        document.addEventListener('touchstart', onDocumentTouchStart, false);
-        document.addEventListener('touchend', onMouseUp, false);
-    }
-    else {
-        // for those with touch screen
-        //document.addEventListener('touchmove', onDocumentTouchStart, false);
-        document.addEventListener('touchstart', onDocumentTouchStart, false);
-        document.addEventListener('touchend', onMouseUp, false);
-    }
-    */
   
 }
 
@@ -390,15 +375,15 @@ function animate() {
     targetTracking()
     
     
-    if (keyboard.pressed('W')) markerHiro.position.z -= 0.05;
-    if (keyboard.pressed('A')) markerHiro.position.x -= 0.05;
-    if (keyboard.pressed('S')) markerHiro.position.z += 0.05;
-    if (keyboard.pressed('D')) markerHiro.position.x += 0.05;
+    //if (keyboard.pressed('W')) markerHiro.position.z -= 0.05;
+    //if (keyboard.pressed('A')) markerHiro.position.x -= 0.05;
+    //if (keyboard.pressed('S')) markerHiro.position.z += 0.05;
+    //if (keyboard.pressed('D')) markerHiro.position.x += 0.05;
 
-    if (keyboard.pressed('I')) markerKanji.position.z -= 0.05;
-    if (keyboard.pressed('J')) markerKanji.position.x -= 0.05;
-    if (keyboard.pressed('K')) markerKanji.position.z += 0.05;
-    if (keyboard.pressed('L')) markerKanji.position.x += 0.05;
+    if (keyboard.pressed('W')) markerKanji.position.z -= 0.05;
+    if (keyboard.pressed('A')) markerKanji.position.x -= 0.05;
+    if (keyboard.pressed('S')) markerKanji.position.z += 0.05;
+    if (keyboard.pressed('D')) markerKanji.position.x += 0.05;
 
     if (keyboard.pressed('1')) markerKanji.position.set(3, 0, 3);
     if (keyboard.pressed('2')) markerKanji.position.set(-3, 0, 3);
@@ -428,7 +413,7 @@ function onWindowResize() {
 
 function addMarkerHiro() {
 
-	let markerRoot = new THREE.Group()
+	let markerRoot = new THREE.Group();
     var artoolkitMarker;
     if (arMode) {
     
@@ -453,7 +438,7 @@ function addMarkerHiro() {
 
 function addMarkerKanji() {
 
-	let markerRoot = new THREE.Group()
+	let markerRoot = new THREE.Group();
     var artoolkitMarker;
     if (arMode) {
     
@@ -497,20 +482,22 @@ function addMarkerKanji() {
 
 function targetTracking() {
 
-	var relativePos = markerHiro.position.clone().sub(markerKanji.position);
-    if ( markerKanji.position.distanceTo(kanjiPrePos) > 0.5 ) {
+	//var relativePos = markerHiro.position.clone().sub(markerKanji.position);
+    var relativePos = markerHiro.worldToLocal( markerKanji.localToWorld( new THREE.Vector3() ) );
+    if ( relativePos.distanceTo(kanjiPrePos) > 0.5 ) {
     
         q1.copy(q2);  // save current (old) orientation
         q2.setFromUnitVectors(new THREE.Vector3(1, 0, 0), markerKanji.position.clone().normalize());  // compute new oriention
 
         N = 100;
         counter = 0;
-        kanjiPrePos.copy(markerKanji.position);
+        kanjiPrePos.copy(relativePos);
             
     }
 
     //cannon.main.lookAt(markerKanji.position);
-    var deviation = cannon.aimPos.clone().sub(markerKanji.position);
+    //var deviation = cannon.aimPos.clone().sub(markerKanji.position);
+    var deviation = cannon.aimPos.clone().sub( markerKanji.localToWorld( new THREE.Vector3() ) );
     
     if (counter <= N) {
         let alpha = counter / N;
@@ -519,46 +506,51 @@ function targetTracking() {
         cannon.main.quaternion.copy(qm);
         ++counter;
     }
-    else if ( deviation.length() > 0.5 ) {
+
+    if ( deviation.length() > 0.5 ) {
 
         if (relativePos.x < 0 && relativePos.z < 0) {
         
-            if ( (deviation.x > 0 || deviation.z > 0) && cannon.barrelPart.rotation.z < -0.1 ) {
-                cannon.barrelPart.rotation.z += 0.025;
-            }
-            else if (cannon.barrelPart.rotation.z > -Math.PI/2.2){
+
+            if ( (deviation.x > 0 || deviation.z > 0) && cannon.barrelPart.rotation.z > -Math.PI/4 ){
                 cannon.barrelPart.rotation.z -= 0.025;
+            }
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15 ) {
+                cannon.barrelPart.rotation.z += 0.025;
             }
         
         }
         else if (relativePos.x > 0 && relativePos.z < 0) {
         
-            if ( (deviation.x < 0 || deviation.z > 0) && cannon.barrelPart.rotation.z < -0.1 ) {
-                cannon.barrelPart.rotation.z += 0.025;
-            }
-            else if (cannon.barrelPart.rotation.z > -Math.PI/2.2){
+            if ( (deviation.x < 0 || deviation.z > 0) && cannon.barrelPart.rotation.z > -Math.PI/4 ){
                 cannon.barrelPart.rotation.z -= 0.025;
             }
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15) {
+                cannon.barrelPart.rotation.z += 0.025;
+            }
+            
         
         }
         else if (relativePos.x > 0 && relativePos.z > 0) {
         
-            if ( (deviation.x < 0 || deviation.z < 0) && cannon.barrelPart.rotation.z < -0.1 ) {
-                cannon.barrelPart.rotation.z += 0.025;
-            }
-            else if (cannon.barrelPart.rotation.z > -Math.PI/2.2){
+            if ( (deviation.x < 0 || deviation.z < 0) && cannon.barrelPart.rotation.z > -Math.PI/4 ){
                 cannon.barrelPart.rotation.z -= 0.025;
             }
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15) {
+                cannon.barrelPart.rotation.z += 0.025;
+            }
+            
         
         }
         else if (relativePos.x < 0 && relativePos.z > 0) {
         
-            if ( (deviation.x > 0 || deviation.z < 0) && cannon.barrelPart.rotation.z < -0.1 ) {
-                cannon.barrelPart.rotation.z += 0.025;
-            }
-            else if (cannon.barrelPart.rotation.z > -Math.PI/2.2){
+            if ( (deviation.x > 0 || deviation.z < 0) && cannon.barrelPart.rotation.z > -Math.PI/4 ){
                 cannon.barrelPart.rotation.z -= 0.025;
             }
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15) {
+                cannon.barrelPart.rotation.z += 0.025;
+            }
+            
         
         }
 
