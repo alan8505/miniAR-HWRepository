@@ -100,7 +100,7 @@ class Cannon {
         if (this.isShooting) {
         
             this.cannonball.update(dt);
-            if (this.cannonball.pos.y < 0) {
+            if (this.cannonball.pos.y < markerHiro.position.y) {
             
                 var vec = this.cannonball.main.worldToLocal( markerKanji.localToWorld( new THREE.Vector3() ) );
                 var distance = vec.length();
