@@ -12,14 +12,12 @@
 <script>
 // global variables
 var renderer, scene, camera, clock, stats;
-var sceneHUD, cameraHUD;
 var loader, raycaster, mouse, keyboard;
 
 var arToolKitSource, arToolKitContext, markerHiro, markerKanji;
 
-var button;
-var size = 2;
-var isButtonPressed = false;
+var spriteSize = 2;
+var scale = 0.5;
 
 var cannon, sprite;
 var kanjiPrePos;
@@ -38,10 +36,10 @@ class Cannonball {
   
         this.vel = barrel.localToWorld(new THREE.Vector3(0, 2, 0)).sub(
         barrel.localToWorld(new THREE.Vector3(0, 0, 0))).setLength(power);
-        this.pos = barrel.localToWorld(new THREE.Vector3(0, 2.2, 0));
+        this.pos = barrel.localToWorld(new THREE.Vector3(0, 2.2*scale, 0));
         this.force = force;
     
-        let geo = new THREE.CylinderGeometry(0.052, 0.2, 0.5, 20);
+        let geo = new THREE.CylinderGeometry(0.052*scale, 0.2*scale, 0.5*scale, 20);
         let mat = new THREE.MeshPhongMaterial();
         this.main = new THREE.Mesh(geo, mat);
         this.main.rotation.y = direct;
@@ -69,22 +67,22 @@ class Cannon {
         this.main = new THREE.Group();
         this.barrelPart = new THREE.Group();
         
-        this.power = 2.5;
-        this.force = new THREE.Vector3(0, -1, 0);
+        this.power = 2.5*scale;
+        this.force = new THREE.Vector3(0, -1*scale, 0);
         this.isShooting = false;
         this.aimPos = new THREE.Vector3(0, 0, 0);
         
         let geo, mat;
-        geo = new THREE.SphereGeometry(1, 20, 20, Math.PI+Math.PI*0.1, Math.PI*1.8,0, Math.PI/2);
+        geo = new THREE.SphereGeometry(1*scale, 20*scale, 20*scale, Math.PI+Math.PI*0.1, Math.PI*1.8,0, Math.PI/2);
         mat = new THREE.MeshNormalMaterial();
         let body = new THREE.Mesh(geo, mat);
         //body.rotation.y = -Math.PI/2;
         this.main.add(body);
         
-        geo = new THREE.CylinderGeometry(0.2, 0.2, 2, 18);
+        geo = new THREE.CylinderGeometry(0.2*scale, 0.2*scale, 2*scale, 18);
         mat = new THREE.MeshNormalMaterial();
         let barrel = new THREE.Mesh(geo, mat);
-        barrel.position.y = 1;
+        barrel.position.y = 1*scale;
         this.barrelPart.add(barrel);
         this.barrelPart.rotation.z = -Math.PI/3;
         //this.barrelPart.rotation.y = -Math.PI/2;
@@ -106,6 +104,7 @@ class Cannon {
             
                 var distance = this.cannonball.pos.distanceTo(markerKanji.position);
                 if (distance <= 2) {
+                    markerKanji.children[2].visible = false;
                     sprite.play();
                 }
             
@@ -142,7 +141,7 @@ class Cannon {
         let points = [];
         let vel = this.barrelPart.localToWorld(new THREE.Vector3(0,2,0)).sub(
         this.barrelPart.localToWorld(new THREE.Vector3(0,0,0))).setLength(this.power);
-        this.aimPos = this.barrelPart.localToWorld(new THREE.Vector3(0,2.2,0));
+        this.aimPos = this.barrelPart.localToWorld(new THREE.Vector3(0,2.2*scale,0));
         for (let i = 0; this.aimPos.y>0; i++) {
     
             points.push(this.aimPos.clone());
@@ -267,7 +266,6 @@ function init() {
 
 	// init renderer
 	renderer = new THREE.WebGLRenderer( {alpha: true} );
-    renderer.autoClear = false;
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	//renderer.domElement.style.position = 'absolute';
 	renderer.domElement.style.top = 0;
@@ -286,7 +284,6 @@ function init() {
 
 	// init scene and camera
 	scene    = new THREE.Scene();
-    sceneHUD = new THREE.Scene();
   
     var light = new THREE.PointLight( 0xFFFFFF, 1, 100 );
     light.position.y = 10;
@@ -339,26 +336,23 @@ function init() {
         });
     
     }
-  
-    createHUDButton();
     
     // create marker hiro 
     markerHiro = addMarkerHiro();
     scene.add(markerHiro);
     
-    markerHiro.position.x = -5;
-    markerHiro.position.z = -5;
-    
     // create marker kanji 
     markerKanji = addMarkerKanji();
     scene.add(markerKanji);
+
+    markerKanji.position.x = -5;
     
     // init cannon auto-aim
     q1 = new THREE.Quaternion();
     q2 = new THREE.Quaternion();
     kanjiPrePos =  new THREE.Vector3();
 
-
+    /*
     if( !!navigator.platform.match(/Win32|MacIntel/) ) {
         // mousemove
         window.addEventListener( 'mousemove', onMouseMove, false );
@@ -373,6 +367,7 @@ function init() {
         document.addEventListener('touchstart', onDocumentTouchStart, false);
         document.addEventListener('touchend', onMouseUp, false);
     }
+    */
   
 }
 
@@ -383,12 +378,8 @@ function animate() {
     keyboard.update();
   
     if (arMode) {
-  
   	    if ( arToolkitSource.ready === false )	return
         arToolkitContext.update( arToolkitSource.domElement );
-        //raycaster.ray.origin.set (0,0,0);
-        //raycaster.ray.direction.set( ndcX, ndcY, 0.5 ).unproject( cameraHUD ).sub( raycaster.ray.origin ).normalize();
-    
     }
 
     var dt = clock.getDelta();
@@ -409,14 +400,12 @@ function animate() {
     if (keyboard.pressed('K')) markerKanji.position.z += 0.05;
     if (keyboard.pressed('L')) markerKanji.position.x += 0.05;
 
-    if (keyboard.pressed('1')) markerKanji.position.set(5, 0, 5);
-    if (keyboard.pressed('2')) markerKanji.position.set(-5, 0, 5);
-    if (keyboard.pressed('3')) markerKanji.position.set(-5, 0, -5);
-    if (keyboard.pressed('4')) markerKanji.position.set(5, 0, -5);
+    if (keyboard.pressed('1')) markerKanji.position.set(3, 0, 3);
+    if (keyboard.pressed('2')) markerKanji.position.set(-3, 0, 3);
+    if (keyboard.pressed('3')) markerKanji.position.set(-3, 0, -3);
+    if (keyboard.pressed('4')) markerKanji.position.set(3, 0, -3);
 	
-    renderer.clear();
 	renderer.render(scene, camera);
-    renderer.render(sceneHUD, cameraHUD);
   
 }
 
@@ -433,56 +422,7 @@ function onWindowResize() {
     height = 15;
     width = height*whRatio;
     camera = new THREE.PerspectiveCamera (45, whRatio, 0.1, 10000);
-    cameraHUD = new THREE.OrthographicCamera( -width, width, height, -height, -10, 10 );
-    button.position.y = -(height/3*2);
     renderer.setSize(window.innerWidth, window.innerHeight);
-  
-}
-
-function onMouseMove( event ) {
-	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-}
-
-function onMouseDown() {
-	//console.log("mouseDown");
-    raycaster.setFromCamera( mouse, cameraHUD );
-    var intersects = raycaster.intersectObjects( sceneHUD.children );
-
-	if (intersects.length>0){
-        intersects[0].object.material.color.set( 0xff0000 );
-    }
-}
-
-function onMouseUp() {
-	//console.log("mouseUp");
-    button.material.color.set( 0xffffff );
-    raycaster.setFromCamera( mouse, cameraHUD );
-    var intersects = raycaster.intersectObjects( sceneHUD.children );
-    if (intersects.length > 0) {
-        if (intersects[0].object == button) {
-            cannon.shoot();
-        }
-    }
-  
-}
-
-function onDocumentTouchStart(event) {
-
-    if (event.touches.length == 1) {    
-        //event.preventDefault();
-        mouse.x = ( event.touches[0].pageX / window.innerWidth ) * 2 - 1;
-        mouse.y = - ( event.touches[0].pageY / window.innerHeight ) * 2 + 1;
-        raycaster.setFromCamera( mouse, cameraHUD );
-
-        var intersects = raycaster.intersectObjects( sceneHUD.children );
-        if (intersects[0]==button) {
-        
-            button.material.color.set( 0xff0000 );
-            turn = true;
-        
-        }
-    }
   
 }
 
@@ -501,7 +441,6 @@ function addMarkerHiro() {
     
     // Create cannon
     cannon = new Cannon();
-    //cannon.main.rotation.y = -Math.PI;
     markerRoot.add(cannon.main);
     
     
@@ -536,34 +475,25 @@ function addMarkerKanji() {
     sprite = new Sprite();
     sprite.main.position.y = 1.2;
     markerRoot.add(sprite.main);
-    
+
+    let geo2 = new THREE.CylinderGeometry(0.05, 0.4, 0.5, 20);
+    let mat2 = new THREE.MeshPhongMaterial();
+    let mesh = new THREE.Mesh(geo2, mat2);
+    mesh.position.y = 2.25;
+    markerRoot.add(mesh);
+
+    let geo3 = new THREE.CylinderGeometry(0.4, 0.4, 2, 20);
+    let mat3 = new THREE.MeshPhongMaterial();
+    let mesh2 = new THREE.Mesh(geo3, mat3);
+    mesh2.position.y = -1.25;
+    mesh.add(mesh2);
+
     // GridHelper
-    const gridHelper = new THREE.GridHelper( 1, 10 );
-    markerRoot.add( gridHelper );
+    //const gridHelper = new THREE.GridHelper( 1, 10 );
+    //markerRoot.add( gridHelper );
             
     return markerRoot;
 }	
-
-function createHUDButton() {
-
-	whRatio = window.innerWidth / window.innerHeight;
-    height = 15;
-    width = height*whRatio;
-    cameraHUD = new THREE.OrthographicCamera( -width, width, height, -height, -10, 10 );
-    let geo, mat;
-    geo = new THREE.CircleGeometry( 2.5, 32);
-    mat = new THREE.MeshBasicMaterial();
-    mat.color = new THREE.Color("rgb(255,255,0)");
-    button = new THREE.Mesh( geo, mat );
-    loader.load('https://i.imgur.com/A6XsjLi.jpg', function( texture ) {
-        texture.repeat.set(0.4, 0.4);
-        texture.offset.set(0.27, 0.27);
-        button.material = new THREE.MeshBasicMaterial( { map: texture } );
-    });
-    button.position.y = -(height/3*2);
-    sceneHUD.add(button);
-	
-}
 
 function targetTracking() {
 
@@ -632,6 +562,9 @@ function targetTracking() {
         
         }
 
+    }
+    else if (markerKanji.children[2].visible){
+        cannon.shoot();
     }
   
 }
