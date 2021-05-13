@@ -27,7 +27,7 @@ var q1, q2;
 var run = true;
 
 //-----------------
-var arMode = true;
+var arMode = false;
 //-----------------
 
 class Cannonball {
@@ -382,10 +382,10 @@ function animate() {
 
     targetTracking()
     
-    //if (keyboard.pressed('W')) markerHiro.position.z -= 0.05;
-    //if (keyboard.pressed('A')) markerHiro.position.x -= 0.05;
-    //if (keyboard.pressed('S')) markerHiro.position.z += 0.05;
-    //if (keyboard.pressed('D')) markerHiro.position.x += 0.05;
+    if (keyboard.pressed('I')) markerHiro.position.z -= 0.05;
+    if (keyboard.pressed('J')) markerHiro.position.x -= 0.05;
+    if (keyboard.pressed('K')) markerHiro.position.z += 0.05;
+    if (keyboard.pressed('L')) markerHiro.position.x += 0.05;
 
     if (keyboard.pressed('W')) markerKanji.position.z -= 0.05;
     if (keyboard.pressed('A')) markerKanji.position.x -= 0.05;
@@ -492,7 +492,7 @@ function targetTracking() {
     if ( relativePos.distanceTo(kanjiPrePos) > 0.05 ) {
     
         q1.copy(q2);  // save current (old) orientation
-        q2.setFromUnitVectors(new THREE.Vector3(1, 0, 0), markerKanji.localToWorld( new THREE.Vector3() ).normalize());  // compute new oriention
+        q2.setFromUnitVectors(new THREE.Vector3(1, 0, 0), relativePos.clone().normalize());  // compute new oriention
 
         N = 100;
         counter = 0;
