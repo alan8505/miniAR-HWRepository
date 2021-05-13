@@ -24,35 +24,37 @@ var kanjiPrePos;
 var N, counter;
 var q1, q2;
 
+var run = true;
+
 //-----------------
 var arMode = true;
 //-----------------
 
-//return;
-
 class Cannonball {
 
 	constructor(barrel, direct, power, force) {
-  
-        this.vel = barrel.localToWorld(new THREE.Vector3(0, 2, 0)).sub(
-        barrel.localToWorld(new THREE.Vector3(0, 0, 0))).setLength(power);
-        this.pos = barrel.localToWorld(new THREE.Vector3(0, 2.2*scale, 0));
-        this.force = force;
-    
+
         let geo = new THREE.CylinderGeometry(0.052*scale, 0.2*scale, 0.5*scale, 20);
         let mat = new THREE.MeshPhongMaterial();
         this.main = new THREE.Mesh(geo, mat);
         this.main.rotation.y = direct;
         markerHiro.add(this.main);
-    
+  
+        this.vel = barrel.localToWorld( new THREE.Vector3(0, 2*scale, 0) );
+        this.vel = markerHiro.worldToLocal(this.vel);
+        this.vel.setLength(power);
+        this.pos = barrel.localToWorld( new THREE.Vector3(0, 2.2*scale, 0) );
+        this.pos = markerHiro.worldToLocal(this.pos);
+        this.force = force;
+
     }
   
     update(dt) {
     
         // Euler's method
-        this.vel.add(this.force.clone().multiplyScalar(dt));
+        this.vel.add( this.force.clone().multiplyScalar(dt) );
         let prePos = this.pos.clone();
-        this.pos.add(this.vel.clone().multiplyScalar(dt));
+        this.pos.add( this.vel.clone().multiplyScalar(dt) );
         this.main.position.copy(this.pos);
         this.main.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), this.pos.clone().sub(prePos).normalize());
     
@@ -72,6 +74,7 @@ class Cannon {
         this.isShooting = false;
         this.aimPos = new THREE.Vector3(0, 0, 0);
         
+        // cannon main body
         let geo, mat;
         geo = new THREE.SphereGeometry(1*scale, 20*scale, 20*scale, Math.PI+Math.PI*0.1, Math.PI*1.8,0, Math.PI/2);
         mat = new THREE.MeshNormalMaterial();
@@ -79,6 +82,7 @@ class Cannon {
         //body.rotation.y = -Math.PI/2;
         this.main.add(body);
         
+        // cannon barrel
         geo = new THREE.CylinderGeometry(0.2*scale, 0.2*scale, 2*scale, 18);
         mat = new THREE.MeshNormalMaterial();
         let barrel = new THREE.Mesh(geo, mat);
@@ -100,12 +104,12 @@ class Cannon {
         if (this.isShooting) {
         
             this.cannonball.update(dt);
-            if (this.cannonball.pos.y < markerHiro.position.y) {
+            if (this.cannonball.pos.y < 0) {
             
                 var vec = this.cannonball.main.worldToLocal( markerKanji.localToWorld( new THREE.Vector3() ) );
                 var distance = vec.length();
                 console.log(distance);
-                if (distance <= 1.5) {
+                if (distance <= 1.1) {
                     markerKanji.children[2].visible = false;
                     sprite.play();
                 }
@@ -127,13 +131,13 @@ class Cannon {
         }
         
         if (keyboard.pressed('up') && this.barrelPart.rotation.z < -Math.PI/15) {
-            this.barrelPart.rotation.z += 0.05;
+            this.barrelPart.rotation.z += 0.02;
         }
         
         if (keyboard.pressed('down') && this.barrelPart.rotation.z > -Math.PI/4) {
-            this.barrelPart.rotation.z -= 0.05;
+            this.barrelPart.rotation.z -= 0.02;
         }
-        
+
         this.drawLine();
         
     }
@@ -141,23 +145,26 @@ class Cannon {
     drawLine() {
         
         let points = [];
-        let vel = this.barrelPart.localToWorld(new THREE.Vector3(0,2,0)).sub(
-        this.barrelPart.localToWorld(new THREE.Vector3(0,0,0))).setLength(this.power);
-        this.aimPos = this.barrelPart.localToWorld(new THREE.Vector3(0,2.2*scale,0));
-        for (let i = 0; this.aimPos.y>0; i++) {
+        let vel;
+        vel = this.barrelPart.localToWorld( new THREE.Vector3(0, 2*scale, 0) );
+        vel = markerHiro.worldToLocal(vel);
+        vel.setLength(this.power);
+        this.aimPos = this.barrelPart.localToWorld( new THREE.Vector3(0, 2.2*scale, 0) );
+        this.aimPos = markerHiro.worldToLocal(this.aimPos);
+        for (let i = 0; this.aimPos.y > 0; i++) {
     
             points.push(this.aimPos.clone());
-            vel.add(this.force.clone().multiplyScalar(0.05));
-            this.aimPos.add(vel.clone().multiplyScalar(0.05));
+            vel.add(this.force.clone().multiplyScalar(0.1));
+            this.aimPos.add(vel.clone().multiplyScalar(0.1));
 
         }
 
         let geometry = new THREE.BufferGeometry().setFromPoints(points);
         let parabola = new THREE.Line(geometry, new THREE.LineDashedMaterial({color:'cyan'}));
         parabola.computeLineDistances();
-        scene.remove(this.parabola);
+        markerHiro.remove(this.parabola);
+        markerHiro.add(parabola);
         this.parabola = parabola;
-        scene.add(this.parabola);
         
     }
   
@@ -269,7 +276,7 @@ function init() {
 	// init renderer
 	renderer = new THREE.WebGLRenderer( {alpha: true} );
 	renderer.setSize( window.innerWidth, window.innerHeight );
-	//renderer.domElement.style.position = 'absolute';
+	renderer.domElement.style.position = 'absolute';
 	renderer.domElement.style.top = 0;
 	renderer.domElement.style.left = 0;
 	document.body.appendChild( renderer.domElement );
@@ -284,8 +291,8 @@ function init() {
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	// init scene and camera
-	scene    = new THREE.Scene();
+	// init scene
+	scene = new THREE.Scene();
   
     var light = new THREE.PointLight( 0xFFFFFF, 1, 100 );
     light.position.y = 10;
@@ -346,13 +353,11 @@ function init() {
     // create marker kanji 
     markerKanji = addMarkerKanji();
     scene.add(markerKanji);
-
-    markerKanji.position.x = -5;
     
     // init cannon auto-aim
     q1 = new THREE.Quaternion();
     q2 = new THREE.Quaternion();
-    kanjiPrePos =  new THREE.Vector3();
+    kanjiPrePos = markerKanji.position.clone();
   
 }
 
@@ -361,6 +366,9 @@ function animate() {
 	requestAnimationFrame(animate);
 	stats.update();
     keyboard.update();
+
+    if (keyboard.pressed('P')) run = !run;
+    if (!run) return;
   
     if (arMode) {
   	    if ( arToolkitSource.ready === false )	return
@@ -373,7 +381,6 @@ function animate() {
     sprite.update(dt);
 
     targetTracking()
-    
     
     //if (keyboard.pressed('W')) markerHiro.position.z -= 0.05;
     //if (keyboard.pressed('A')) markerHiro.position.x -= 0.05;
@@ -411,7 +418,7 @@ function onWindowResize() {
   
 }
 
-function addMarkerHiro() {
+function addMarkerHiro() {  
 
 	let markerRoot = new THREE.Group();
     var artoolkitMarker;
@@ -419,7 +426,7 @@ function addMarkerHiro() {
     
         artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
             type : 'pattern',
-            patternUrl :  'https://jyunming-chen.github.io/ar.js/data/data/patt.hiro'
+            patternUrl : 'https://jyunming-chen.github.io/ar.js/data/data/patt.hiro'
         });
         
     }
@@ -427,7 +434,6 @@ function addMarkerHiro() {
     // Create cannon
     cannon = new Cannon();
     markerRoot.add(cannon.main);
-    
     
     // GridHelper
     //const gridHelper = new THREE.GridHelper( 1, 10 );
@@ -482,24 +488,21 @@ function addMarkerKanji() {
 
 function targetTracking() {
 
-	//var relativePos = markerHiro.position.clone().sub(markerKanji.position);
     var relativePos = markerHiro.worldToLocal( markerKanji.localToWorld( new THREE.Vector3() ) );
-    if ( relativePos.distanceTo(kanjiPrePos) > 0.5 ) {
+    if ( relativePos.distanceTo(kanjiPrePos) > 0.05 ) {
     
         q1.copy(q2);  // save current (old) orientation
-        q2.setFromUnitVectors(new THREE.Vector3(1, 0, 0), markerKanji.position.clone().normalize());  // compute new oriention
+        q2.setFromUnitVectors(new THREE.Vector3(1, 0, 0), markerKanji.localToWorld( new THREE.Vector3() ).normalize());  // compute new oriention
 
         N = 100;
         counter = 0;
         kanjiPrePos.copy(relativePos);
             
     }
-
-    //cannon.main.lookAt(markerKanji.position);
-    //var deviation = cannon.aimPos.clone().sub(markerKanji.position);
-    var deviation = cannon.aimPos.clone().sub( markerKanji.localToWorld( new THREE.Vector3() ) );
     
-    if (counter <= N) {
+    var deviation = markerHiro.localToWorld( cannon.aimPos ).sub( markerKanji.localToWorld( new THREE.Vector3() ) );
+
+    if (counter < N) {
         let alpha = counter / N;
         let qm = q1.clone();
         qm.slerp(q2, alpha);
@@ -510,48 +513,44 @@ function targetTracking() {
     if ( deviation.length() > 0.5 ) {
 
         if (relativePos.x < 0 && relativePos.z < 0) {
-        
 
-            if ( (deviation.x > 0 || deviation.z > 0) && cannon.barrelPart.rotation.z > -Math.PI/4 ){
+            if ( (deviation.x > 0 || deviation.z > 0) && cannon.barrelPart.rotation.z > -Math.PI/4){
+                cannon.barrelPart.rotation.z -= 0.01;
+            }
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15 ) {
+                cannon.barrelPart.rotation.z += 0.01;
+            }
+        
+        }
+        else if (relativePos.x > 0 && relativePos.z < 0) {
+
+            if ( (deviation.x < 0 || deviation.z > 0) && cannon.barrelPart.rotation.z > -Math.PI/4){
+                cannon.barrelPart.rotation.z -= 0.01;
+            }
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15 ) {
+                cannon.barrelPart.rotation.z += 0.01;
+            }
+        
+        }
+        else if (relativePos.x > 0 && relativePos.z > 0) {
+        
+            if ( (deviation.x < 0 || deviation.z < 0) && cannon.barrelPart.rotation.z > -Math.PI/4){
+                cannon.barrelPart.rotation.z -= 0.01;
+            }
+            else if (cannon.barrelPart.rotation.z < -Math.PI/15 ) {
+                cannon.barrelPart.rotation.z += 0.01;
+            }
+        
+        }
+        else if (relativePos.x < 0 && relativePos.z > 0) {
+        
+            if ( (deviation.x > 0 || deviation.z < 0) && cannon.barrelPart.rotation.z > -Math.PI/4){
                 cannon.barrelPart.rotation.z -= 0.025;
             }
             else if (cannon.barrelPart.rotation.z < -Math.PI/15 ) {
                 cannon.barrelPart.rotation.z += 0.025;
             }
-        
-        }
-        else if (relativePos.x > 0 && relativePos.z < 0) {
-        
-            if ( (deviation.x < 0 || deviation.z > 0) && cannon.barrelPart.rotation.z > -Math.PI/4 ){
-                cannon.barrelPart.rotation.z -= 0.025;
-            }
-            else if (cannon.barrelPart.rotation.z < -Math.PI/15) {
-                cannon.barrelPart.rotation.z += 0.025;
-            }
-            
-        
-        }
-        else if (relativePos.x > 0 && relativePos.z > 0) {
-        
-            if ( (deviation.x < 0 || deviation.z < 0) && cannon.barrelPart.rotation.z > -Math.PI/4 ){
-                cannon.barrelPart.rotation.z -= 0.025;
-            }
-            else if (cannon.barrelPart.rotation.z < -Math.PI/15) {
-                cannon.barrelPart.rotation.z += 0.025;
-            }
-            
-        
-        }
-        else if (relativePos.x < 0 && relativePos.z > 0) {
-        
-            if ( (deviation.x > 0 || deviation.z < 0) && cannon.barrelPart.rotation.z > -Math.PI/4 ){
-                cannon.barrelPart.rotation.z -= 0.025;
-            }
-            else if (cannon.barrelPart.rotation.z < -Math.PI/15) {
-                cannon.barrelPart.rotation.z += 0.025;
-            }
-            
-        
+
         }
 
     }
